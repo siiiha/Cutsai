@@ -7,7 +7,7 @@ export default function PasswordReset() {
         <div className={"card "}>
           <div className={"brand"}>
             <span className={"mark"}>{"✎"}</span>
-            {"작업실"}
+            {"Cutsai"}
           </div>
           <h1>{"비밀번호 재설정"}</h1>
           <div className={"form"}>

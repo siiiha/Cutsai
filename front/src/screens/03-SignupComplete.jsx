@@ -5,7 +5,7 @@ export default function SignupComplete() {
         <div className={"card "}>
           <div className={"brand"}>
             <span className={"mark"}>{"✎"}</span>
-            {"작업실"}
+            {"Cutsai"}
           </div>
           <h1>{"회원가입"}</h1>
           <div className={"form"}>
@@ -41,7 +41,7 @@ export default function SignupComplete() {
         <div className={"card modal success"}>
           <div className={"check"}>{"✓"}</div>
           <h2>{"가입이 완료됐어요"}</h2>
-          <p>{"이제 작업실에 로그인할 수 있어요."}</p>
+          <p>{"이제 Cutsai에 로그인할 수 있어요."}</p>
           <br />
           <button className={"primary"}>{"로그인으로 이동"}</button>
         </div>

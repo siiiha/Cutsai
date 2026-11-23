@@ -7,7 +7,7 @@ export default function Login() {
         <div className={"card "}>
           <div className={"brand"}>
             <span className={"mark"}>{"✎"}</span>
-            {"작업실"}
+            {"Cutsai"}
           </div>
           <h1>{"로그인"}</h1>
           <div className={"form"}>

@@ -15,7 +15,7 @@ export default function WorkLayout() {
       <aside className="side">
         <div className="brand">
           <span className="mark">✎</span>
-          작업실
+          Cutsai
         </div>
         <nav>
           {navigation.map(({ to, icon, label }) => (

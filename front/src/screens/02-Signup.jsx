@@ -7,7 +7,7 @@ export default function Signup() {
         <div className={"card "}>
           <div className={"brand"}>
             <span className={"mark"}>{"✎"}</span>
-            {"작업실"}
+            {"Cutsai"}
           </div>
           <h1>{"회원가입"}</h1>
           <div className={"form"}>

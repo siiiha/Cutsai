@@ -45,7 +45,7 @@ const transitions = {
 function ScreenApp({ screen }) {
   const navigate = useNavigate();
   const { Component, label } = screen;
-  useEffect(() => { document.title = "작업실 · " + label; }, [label]);
+  useEffect(() => { document.title = "Cutsai · " + label; }, [label]);
 
   function go(next) {
     const target = screens[next - 1];

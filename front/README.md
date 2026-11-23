@@ -1,4 +1,4 @@
-# 작업실 React 화면
+# Cutsai 프론트엔드
 
 PDF 「제목 없음」 기준 20페이지를 원본 순서에 맞춰 React 화면으로 구성했다. `src/screens`에 화면별 JSX가 있고, 공통 스타일은 `src/styles.css`에 있다. 화면은 `/login`, `/episodes`처럼 경로로 접근하며, 없는 주소는 404 화면을 보여준다. 기존 `?page=1`부터 `?page=20` 주소도 해당 화면 경로로 이동한다. 작업 화면은 `src/components/WorkLayout.jsx`의 공통 사이드 메뉴를 사용한다.
 
