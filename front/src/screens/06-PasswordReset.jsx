@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function PasswordReset() {
   return (
     <>
@@ -30,7 +32,7 @@ export default function PasswordReset() {
             </label>
             <button className={"primary"}>{"비밀번호 변경"}</button>
           </div>
-          <div className={"foot"}><a href="?page=4" data-page="4">로그인으로 돌아가기</a></div>
+          <div className={"foot"}><Link to="/login">로그인으로 돌아가기</Link></div>
         </div>
       </div>
     </>

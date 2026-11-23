@@ -1,38 +1,7 @@
 export default function Settings() {
   return (
     <>
-      <aside className={"side"}>
-        <div className={"brand"}>
-          <span className={"mark"}>{"✎"}</span>
-          {"작업실"}
-        </div>
-        <nav>
-          <div className={""}>
-            <i>{"▤"}</i>
-            {"대시보드"}
-          </div>
-          <div className={""}>
-            <i>{"▱"}</i>
-            {"회차 관리"}
-          </div>
-          <div className={""}>
-            <i>{"◇"}</i>
-            {"대사 점검"}
-          </div>
-          <div className={""}>
-            <i>{"✦"}</i>
-            {"효과음 소재"}
-          </div>
-          <div className={""}>
-            <i>{"▧"}</i>
-            {"원고 미리보기"}
-          </div>
-          <div className={"on"}>
-            <i>{"⚙"}</i>
-            {"설정"}
-          </div>
-        </nav>
-      </aside>
+
       <div className={"workspace"}>
         <main className={"main"}>
           <div className={"setting stack"}>

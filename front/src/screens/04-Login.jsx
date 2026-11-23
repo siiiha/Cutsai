@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Login() {
   return (
     <>
@@ -20,7 +22,7 @@ export default function Login() {
             </label>
             <button className={"primary"}>{"로그인"}</button>
           </div>
-          <div className={"foot"}><a href="?page=2" data-page="2">회원가입</a>{"　·　"}<a href="?page=6" data-page="6">비밀번호 찾기</a></div>
+          <div className={"foot"}><Link to="/signup">회원가입</Link>{"　·　"}<Link to="/password/reset">비밀번호 찾기</Link></div>
         </div>
       </div>
     </>
