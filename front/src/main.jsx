@@ -1,12 +1,26 @@
-import React, { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate, useLocation } from "react-router-dom";
+import WorkLayout from "./components/WorkLayout.jsx";
+import NotFound from "./pages/NotFound.jsx";
 import { screens } from "./screens.js";
 import "./styles.css";
 
-const menu = {
-  "대시보드": 5, "회차 관리": 11, "대사 점검": 15,
-  "효과음 소재": 20, "원고 미리보기": 17, "설정": 9
-};
+const workScreenIds = new Set([
+  "Dashboard",
+  "DashboardAgain",
+  "Settings",
+  "Withdrawal",
+  "Episodes",
+  "EpisodeCreate",
+  "EpisodeDelete",
+  "Dialogue",
+  "DialogueConsent",
+  "ManuscriptUpload",
+  "ManuscriptPreview",
+  "DialogueResults",
+  "SoundEffects",
+]);
 
 const transitions = {
   1: { "로그인": 4, "회원가입": 2, "시작하기 →": 2 },
@@ -28,50 +42,53 @@ const transitions = {
   19: { "다시 점검": 15 }
 };
 
-function readPage() {
-  const raw = new URLSearchParams(window.location.search).get("page");
-  const number = Number(raw);
-  return Number.isInteger(number) && number >= 1 && number <= screens.length ? number : 1;
-}
-
-function ScreenApp() {
-  const [page, setPage] = useState(readPage);
-  const { Component, label } = screens[page - 1];
-
-  useEffect(() => {
-    const sync = () => setPage(readPage());
-    window.addEventListener("popstate", sync);
-    return () => window.removeEventListener("popstate", sync);
-  }, []);
-
-  useEffect(() => { document.title = "작업실 · " + label; }, [label]);
+function ScreenApp({ screen }) {
+  const navigate = useNavigate();
+  const { Component, label } = screen;
+  useEffect(() => { document.title = "Cutsai · " + label; }, [label]);
 
   function go(next) {
-    const url = new URL(window.location.href);
-    url.searchParams.set("page", String(next));
-    window.history.pushState(null, "", url);
-    setPage(next);
+    const target = screens[next - 1];
+    if (!target) return;
+    navigate(target.path);
     window.scrollTo(0, 0);
   }
 
   function handleClick(event) {
     const button = event.target.closest("button");
     if (button) {
-      const next = transitions[page]?.[button.textContent.trim()];
+      const next = transitions[screens.indexOf(screen) + 1]?.[button.textContent.trim()];
       if (next) go(next);
       return;
     }
-    const item = event.target.closest(".side nav > div");
-    if (item) {
-      const key = item.textContent.trim().replace(/^[▤▱◇✦▧⚙]\s*/, "");
-      if (menu[key]) go(menu[key]);
-      return;
-    }
-    const link = event.target.closest("[data-page]");
-    if (link) { event.preventDefault(); go(Number(link.dataset.page)); }
   }
 
-  return <div onClick={handleClick}><Component key={page} /></div>;
+  return <div onClick={handleClick}><Component /></div>;
 }
 
-createRoot(document.getElementById("root")).render(<ScreenApp />);
+function HomeRoute() {
+  const { search } = useLocation();
+  const legacyPage = new URLSearchParams(search).get("page");
+  if (legacyPage === null) return <ScreenApp screen={screens[0]} />;
+
+  const page = Number(legacyPage);
+  const target = Number.isInteger(page) && page >= 1 && page <= screens.length ? screens[page - 1] : screens[0];
+  return <Navigate to={target.path} replace />;
+}
+
+createRoot(document.getElementById("root")).render(
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<HomeRoute />} />
+      <Route element={<WorkLayout />}>
+        {screens.filter((screen) => workScreenIds.has(screen.id)).map((screen) => (
+          <Route key={screen.path} path={screen.path} element={<ScreenApp screen={screen} />} />
+        ))}
+      </Route>
+      {screens.filter((screen) => screen.path !== "/" && !workScreenIds.has(screen.id)).map((screen) => (
+        <Route key={screen.path} path={screen.path} element={<ScreenApp screen={screen} />} />
+      ))}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </BrowserRouter>
+);

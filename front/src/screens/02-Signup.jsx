@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Signup() {
   return (
     <>
@@ -5,7 +7,7 @@ export default function Signup() {
         <div className={"card "}>
           <div className={"brand"}>
             <span className={"mark"}>{"✎"}</span>
-            {"작업실"}
+            {"Cutsai"}
           </div>
           <h1>{"회원가입"}</h1>
           <div className={"form"}>
@@ -34,7 +36,7 @@ export default function Signup() {
             </label>
             <button className={"primary"}>{"가입하기"}</button>
           </div>
-          <div className={"foot"}>{"이미 계정이 있나요?　"}<a href="?page=4" data-page="4">로그인</a></div>
+          <div className={"foot"}>{"이미 계정이 있나요?　"}<Link to="/login">로그인</Link></div>
         </div>
       </div>
     </>

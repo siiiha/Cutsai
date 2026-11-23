@@ -4,7 +4,7 @@ export default function Landing() {
       <div className={"row public spread"}>
         <div className={"brand"}>
           <span className={"mark"}>{"✎"}</span>
-          {"작업실"}
+          {"Cutsai"}
         </div>
         <div className={"row "}>
           <button className={""}>{"로그인"}</button>
