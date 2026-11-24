@@ -1,4 +1,4 @@
-package com.kh.back.common.dto;
+package com.siha.cutsai.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

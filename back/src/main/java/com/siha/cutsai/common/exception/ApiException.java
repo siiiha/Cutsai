@@ -1,4 +1,4 @@
-package com.kh.back.common.exception;
+package com.siha.cutsai.common.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
