@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useLocation } from "react-router-dom";
 import WorkLayout from "./components/WorkLayout.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import { screens } from "./screens.js";
+import { hasSession, restoreSession } from "./api/client.js";
 import "./styles.css";
 
 const workScreenIds = new Set([
@@ -42,11 +43,13 @@ const transitions = {
   19: { "다시 점검": 15 }
 };
 
+// AI작성: 화면 메타데이터를 사용해 공통 클릭 전환과 문서 제목을 적용한다.
 function ScreenApp({ screen }) {
   const navigate = useNavigate();
   const { Component, label } = screen;
   useEffect(() => { document.title = "Cutsai · " + label; }, [label]);
 
+  // AI작성: 화면 번호에 해당하는 경로로 이동하고 스크롤을 맨 위로 올린다.
   function go(next) {
     const target = screens[next - 1];
     if (!target) return;
@@ -54,6 +57,7 @@ function ScreenApp({ screen }) {
     window.scrollTo(0, 0);
   }
 
+  // AI작성: 화면의 버튼 텍스트와 전환 맵을 대조해 다음 화면으로 이동한다.
   function handleClick(event) {
     const button = event.target.closest("button");
     if (button) {
@@ -66,6 +70,7 @@ function ScreenApp({ screen }) {
   return <div onClick={handleClick}><Component /></div>;
 }
 
+// AI작성: 레거시 page 쿼리 파라미터를 현재 라우트 경로로 변환한다.
 function HomeRoute() {
   const { search } = useLocation();
   const legacyPage = new URLSearchParams(search).get("page");
@@ -76,11 +81,38 @@ function HomeRoute() {
   return <Navigate to={target.path} replace />;
 }
 
+// AI작성: 인증된 사용자만 작업 화면을 렌더링하는 라우트 가드다.
+function ProtectedRoute() {
+  // AI작성: 새로고침 뒤에도 HttpOnly refresh 쿠키로 세션을 복원한 뒤 보호 화면을 렌더링한다.
+  const [status, setStatus] = useState(hasSession() ? "ready" : "checking");
+  const location = useLocation();
+
+  // AI작성: 최초 진입에는 세션을 복원하고, 재발급 실패 이벤트에는 로그인 화면으로 전환한다.
+  useEffect(() => {
+    let active = true;
+    if (!hasSession()) {
+      restoreSession().then((restored) => {
+        if (active) setStatus(restored ? "ready" : "anonymous");
+      });
+    }
+    const expired = () => active && setStatus("anonymous");
+    window.addEventListener("auth:expired", expired);
+    return () => {
+      active = false;
+      window.removeEventListener("auth:expired", expired);
+    };
+  }, [location.pathname]);
+
+  if (status === "checking") return <div className="auth">Loading...</div>;
+  if (status === "anonymous") return <Navigate to="/login" replace state={{ from: location }} />;
+  return <WorkLayout />;
+}
+
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<HomeRoute />} />
-      <Route element={<WorkLayout />}>
+      <Route element={<ProtectedRoute />}>
         {screens.filter((screen) => workScreenIds.has(screen.id)).map((screen) => (
           <Route key={screen.path} path={screen.path} element={<ScreenApp screen={screen} />} />
         ))}

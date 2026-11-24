@@ -1,14 +1,14 @@
 package com.siha.cutsai.auth;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.siha.cutsai.auth.dto.LoginRequest;
+import com.siha.cutsai.auth.dto.RefreshRequest;
+import com.siha.cutsai.auth.dto.RegisterRequest;
+import com.siha.cutsai.auth.dto.TokenResponse;
 import com.siha.cutsai.common.dto.ApiResponse;
 import com.siha.cutsai.common.exception.ApiException;
 import com.siha.cutsai.common.jwt.JwtProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.time.Instant;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,13 +27,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+/** AI작성: 회원가입·로그인·재발급·로그아웃 인증 API를 제공한다. */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private static final String REFRESH_MODE_HEADER = "X-Refresh-Transport";
     private static final String REFRESH_COOKIE = "refreshToken";
-
     private final AuthService authService;
     private final boolean cookieSecure;
 
@@ -43,84 +43,70 @@ public class AuthController {
         this.cookieSecure = cookieSecure;
     }
 
+    /** AI작성: 이메일·비밀번호로 로그인하고 refresh 토큰을 HttpOnly 쿠키로 내려준다. */
     @PostMapping(path = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<TokenResponse>> login(
-            @Valid @RequestBody LoginRequest login,
+    public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request,
             @RequestHeader(name = REFRESH_MODE_HEADER, required = false) String refreshTransport,
-            HttpServletRequest request) {
-        AuthService.Tokens tokens = authService.login(login.email(), login.password(), request.getRemoteAddr());
-        return tokenResponse(tokens, "cookie".equals(refreshTransport));
+            HttpServletRequest servletRequest) {
+        return tokenResponse(authService.login(request.email(), request.password(), servletRequest.getRemoteAddr()),
+                usesCookie(refreshTransport));
     }
 
+    /** AI작성: 이메일·비밀번호·닉네임으로 새 회원을 생성한다. */
+    @PostMapping(path = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(null));
+    }
+
+    /** AI작성: 쿠키 또는 본문의 refresh 토큰을 한 번만 사용해 새 토큰 쌍을 발급한다. */
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<TokenResponse>> refresh(
-            @RequestBody(required = false) RefreshRequest body,
+    public ResponseEntity<ApiResponse<TokenResponse>> refresh(@RequestBody(required = false) RefreshRequest body,
             @RequestHeader(name = REFRESH_MODE_HEADER, required = false) String refreshTransport,
             @CookieValue(name = REFRESH_COOKIE, required = false) String refreshCookie) {
-        boolean useCookie = "cookie".equals(refreshTransport);
-        String token = useCookie ? refreshCookie : bodyToken(body);
-        if (token == null || token.isBlank()) {
-            if (useCookie) {
-                throw JwtProvider.invalidRefresh();
-            }
-            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION-001", "리프레시 토큰을 입력해 주세요.");
-        }
-        return tokenResponse(authService.refresh(token), useCookie);
+        boolean useCookie = usesCookie(refreshTransport);
+        String refreshToken = useCookie ? refreshCookie : bodyToken(body);
+        if (refreshToken == null || refreshToken.isBlank()) throw JwtProvider.invalidRefresh();
+        return tokenResponse(authService.refresh(refreshToken), useCookie);
     }
 
+    /** AI작성: 현재 회원의 refresh 토큰을 폐기하고 쿠키를 삭제한다. */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(
-            @AuthenticationPrincipal Long memberId,
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal Long memberId,
             @RequestBody(required = false) RefreshRequest body,
             @RequestHeader(name = REFRESH_MODE_HEADER, required = false) String refreshTransport,
             @CookieValue(name = REFRESH_COOKIE, required = false) String refreshCookie) {
-        boolean useCookie = "cookie".equals(refreshTransport);
+        boolean useCookie = usesCookie(refreshTransport);
         authService.logout(memberId, useCookie ? refreshCookie : bodyToken(body));
         ResponseEntity.HeadersBuilder<?> response = ResponseEntity.noContent().cacheControl(CacheControl.noStore());
-        if (useCookie) {
-            response.header(HttpHeaders.SET_COOKIE, refreshCookie("", 0).toString());
-        }
+        if (useCookie) response.header(HttpHeaders.SET_COOKIE, refreshCookie("", 0).toString());
         return response.build();
     }
 
-    private static String bodyToken(RefreshRequest body) {
-        return body == null ? null : body.refreshToken();
-    }
+    /** AI작성: 본문에 토큰이 없는 요청을 안전하게 처리한다. */
+    private static String bodyToken(RefreshRequest body) { return body == null ? null : body.refreshToken(); }
 
+    /** AI작성: refresh 토큰 전달 방식이 HttpOnly 쿠키인지 판별한다. */
+    private static boolean usesCookie(String refreshTransport) { return "cookie".equals(refreshTransport); }
+
+    /** AI작성: 검증 오류를 공통 실패 봉투로 반환한다. */
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<ApiResponse<Void>> invalidRequest() {
-        return ResponseEntity.badRequest().body(
-                ApiResponse.fail("VALIDATION-001", "요청의 필수값과 형식을 확인해 주세요."));
+        return ResponseEntity.badRequest().body(ApiResponse.fail("VALIDATION-001", "요청 필수값과 형식을 확인해 주세요."));
     }
 
+    /** AI작성: refresh 쿠키 전송 방식에 맞춰 토큰 응답과 쿠키를 만든다. */
     private ResponseEntity<ApiResponse<TokenResponse>> tokenResponse(AuthService.Tokens tokens, boolean useCookie) {
         ResponseEntity.BodyBuilder response = ResponseEntity.ok().cacheControl(CacheControl.noStore());
-        if (useCookie) {
-            long remainingSeconds = Math.max(0, Duration.between(Instant.now(), tokens.refreshExpiresAt()).toSeconds());
-            response.header(HttpHeaders.SET_COOKIE, refreshCookie(tokens.refreshToken(), remainingSeconds).toString());
-        }
-        return response.body(ApiResponse.ok(new TokenResponse(tokens.accessToken(), "Bearer",
-                JwtProvider.ACCESS_VALIDITY.toSeconds(), useCookie ? null : tokens.refreshToken(),
-                tokens.refreshExpiresAt().toString())));
+        if (useCookie) response.header(HttpHeaders.SET_COOKIE,
+                refreshCookie(tokens.refreshToken(), Math.max(0, Duration.between(Instant.now(), tokens.refreshExpiresAt()).toSeconds())).toString());
+        return response.body(ApiResponse.ok(new TokenResponse(tokens.accessToken(), "Bearer", JwtProvider.ACCESS_VALIDITY.toSeconds(),
+                useCookie ? null : tokens.refreshToken(), tokens.refreshExpiresAt().toString())));
     }
 
+    /** AI작성: refresh 토큰을 JavaScript에서 읽을 수 없는 인증 전용 쿠키로 만든다. */
     private ResponseCookie refreshCookie(String value, long maxAge) {
-        return ResponseCookie.from(REFRESH_COOKIE, value)
-                .path("/api/auth")
-                .httpOnly(true)
-                .sameSite("Strict")
-                .secure(cookieSecure)
-                .maxAge(maxAge)
-                .build();
+        return ResponseCookie.from(REFRESH_COOKIE, value).path("/api/auth").httpOnly(true).sameSite("Strict")
+                .secure(cookieSecure).maxAge(maxAge).build();
     }
-
-    public record LoginRequest(
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank String password) {}
-
-    public record RefreshRequest(String refreshToken) {}
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record TokenResponse(String accessToken, String tokenType, long accessTokenExpiresIn,
-                                String refreshToken, String refreshTokenExpiresAt) {}
 }
