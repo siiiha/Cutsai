@@ -1,0 +1,4 @@
+#!/bin/sh
+# AI작성: Gradle Wrapper JAR을 실행하는 POSIX용 진입점이다.
+APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec java -classpath "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"
