@@ -1,11 +1,26 @@
+# ========================================
+# Global (최상위 및 모든 하위 폴더 공통 적용)
+# ========================================
+.DS_Store
+*.log
+*.sw?
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.env
+*.env.*
+!*.env.example
+
+# AI작성: 실행 위치에 따라 생성되는 사용자 업로드 파일 제외
+/uploads/
+/back/uploads/
 
 # ========================================
-# Frontend - React
+# Frontend - React (/front)
 # ========================================
 
 # Logs
-/front/logs
-/front/*.log
+/front/logs/
 /front/npm-debug.log*
 /front/yarn-debug.log*
 /front/yarn-error.log*
@@ -19,25 +34,13 @@
 /front/*.local
 
 # Editor directories and files
-/front/.vscode/*
-!/front/.vscode/extensions.json
-/front/.idea/
-/front/.DS_Store
 /front/*.suo
 /front/*.ntvs*
 /front/*.njsproj
 /front/*.sln
-/front/*.sw?
 
 # ========================================
-# Backend - IntelliJ IDEA
-# ========================================
-
-# 저장소 최상위 IntelliJ 설정
-/.idea/
-
-# ========================================
-# Backend - Spring Boot
+# Backend - Spring Boot (/back)
 # ========================================
 
 /back/HELP.md
@@ -61,7 +64,6 @@
 !/back/**/src/test/**/bin/
 
 # IntelliJ IDEA
-/back/.idea/
 /back/*.iws
 /back/*.iml
 /back/*.ipr
@@ -76,15 +78,8 @@
 /back/nbdist/
 /back/.nb-gradle/
 
-# VS Code
-/back/.vscode/
-
-# YAML files
+# 비밀번호가 포함된 로컬 DB 설정 및 YAML 파일 제외
 /back/src/main/resources/application.yaml
-
-# 비밀번호가 포함된 로컬 DB 설정 제외
-/back/src/main/resources/application.yaml
-
-# AI작성: 실행 위치에 따라 생성되는 사용자 업로드 파일 제외
-/uploads/
-/back/uploads/
+/back/src/main/resources/application.yml
+/back/src/main/resources/application-*.yaml
+/back/src/main/resources/application-*.yml
