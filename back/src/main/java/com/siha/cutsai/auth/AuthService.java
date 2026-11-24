@@ -29,6 +29,41 @@ public class AuthService {
         return issueTokens(memberId, now, now.plus(JwtProvider.REFRESH_VALIDITY));
     }
 
+    @Transactional
+    public Tokens refresh(String refreshToken) {
+        long memberId = jwtProvider.readRefreshMember(refreshToken);
+        String hash = AuthHash.sha256(refreshToken);
+        RefreshSession session = jdbc.query("""
+                SELECT expires_at, revoked_at FROM refresh_token
+                WHERE token_hash = ? AND member_id = ? FOR UPDATE
+                """, (rs, row) -> new RefreshSession(rs.getObject("expires_at", LocalDateTime.class),
+                        rs.getObject("revoked_at", LocalDateTime.class)), hash, memberId)
+                .stream().findFirst().orElseThrow(JwtProvider::invalidRefresh);
+
+        Instant now = Instant.now();
+        Instant expiresAt = session.expiresAt().toInstant(ZoneOffset.UTC);
+        if (session.revokedAt() != null || !expiresAt.isAfter(now)) {
+            throw JwtProvider.invalidRefresh();
+        }
+
+        revoke(memberId, hash, now);
+        return issueTokens(memberId, now.truncatedTo(ChronoUnit.SECONDS), expiresAt);
+    }
+
+    @Transactional
+    public void logout(long memberId, String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            revoke(memberId, AuthHash.sha256(refreshToken), Instant.now());
+        }
+    }
+
+    private void revoke(long memberId, String hash, Instant now) {
+        jdbc.update("""
+                UPDATE refresh_token SET revoked_at = ?
+                WHERE token_hash = ? AND member_id = ? AND revoked_at IS NULL
+                """, LocalDateTime.ofInstant(now, ZoneOffset.UTC), hash, memberId);
+    }
+
     private Tokens issueTokens(long memberId, Instant now, Instant refreshExpiresAt) {
         String accessToken = jwtProvider.createAccessToken(memberId, now);
         String refreshToken = jwtProvider.createRefreshToken(memberId, now, refreshExpiresAt);
@@ -41,4 +76,6 @@ public class AuthService {
     }
 
     public record Tokens(String accessToken, String refreshToken, Instant refreshExpiresAt) {}
+
+    private record RefreshSession(LocalDateTime expiresAt, LocalDateTime revokedAt) {}
 }
