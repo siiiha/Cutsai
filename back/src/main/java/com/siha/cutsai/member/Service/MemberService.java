@@ -1,6 +1,7 @@
-package com.siha.cutsai.member;
+package com.siha.cutsai.member.service;
 
 import com.siha.cutsai.common.exception.ApiException;
+import com.siha.cutsai.member.mapper.MemberMapper;
 import com.siha.cutsai.member.dto.MemberResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

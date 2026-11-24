@@ -1,9 +1,11 @@
-package com.siha.cutsai.auth;
+package com.siha.cutsai.auth.service;
 
+import com.siha.cutsai.auth.AuthHash;
+import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
 import com.siha.cutsai.auth.dto.RegisterRequest;
 import com.siha.cutsai.common.exception.ApiException;
 import com.siha.cutsai.common.jwt.JwtProvider;
-import com.siha.cutsai.member.MemberMapper;
+import com.siha.cutsai.member.mapper.MemberMapper;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;

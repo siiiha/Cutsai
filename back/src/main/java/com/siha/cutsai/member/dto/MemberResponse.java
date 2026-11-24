@@ -1,6 +1,6 @@
 package com.siha.cutsai.member.dto;
 
-import com.siha.cutsai.member.MemberMapper;
+import com.siha.cutsai.member.mapper.MemberMapper;
 import java.time.LocalDateTime;
 
 /** AI작성: 비밀번호 정보를 제외한 내 정보 응답이다. */

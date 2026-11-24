@@ -1,4 +1,4 @@
-package com.siha.cutsai.auth;
+package com.siha.cutsai.auth.mapper;
 
 import java.time.LocalDateTime;
 import java.util.Optional;

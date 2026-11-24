@@ -1,5 +1,6 @@
-package com.siha.cutsai.auth;
+package com.siha.cutsai.auth.controller;
 
+import com.siha.cutsai.auth.service.AuthService;
 import com.siha.cutsai.auth.dto.LoginRequest;
 import com.siha.cutsai.auth.dto.RefreshRequest;
 import com.siha.cutsai.auth.dto.RegisterRequest;
