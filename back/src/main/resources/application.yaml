@@ -4,9 +4,9 @@ spring:
 
   # DB 접속 정보
   datasource:
-    url: jdbc:mysql://localhost:3306/final_sample?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: server
-    password: server
+    url: "jdbc:mysql://localhost:3306/cutsai?serverTimezone=Asia/Seoul&characterEncoding=UTF-8"
+    username: cutsai_dev
+    password: "${password}"
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 # 서버 포트 (React 의 vite.config.js API_TARGET 과 같아야 한다)

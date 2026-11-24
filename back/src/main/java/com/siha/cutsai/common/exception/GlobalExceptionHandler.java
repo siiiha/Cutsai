@@ -1,6 +1,6 @@
-package com.kh.back.common.exception;
+package com.siha.cutsai.common.exception;
 
-import com.kh.back.common.dto.ApiResponse;
+import com.siha.cutsai.common.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

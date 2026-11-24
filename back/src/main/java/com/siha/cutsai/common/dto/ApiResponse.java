@@ -1,4 +1,4 @@
-package com.kh.back.common.dto;
+package com.siha.cutsai.common.dto;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
