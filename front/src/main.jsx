@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useLocation } from "react-router-dom";
 import WorkLayout from "./components/WorkLayout.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import { screens } from "./screens.js";
-import { hasSession, restoreSession } from "./api/client.js";
+import { restoreSession } from "./api/client.js";
+import { useAuthStore } from "./stores/useAuthStore.js";
 import "./styles.css";
 
 const workScreenIds = new Set([
@@ -84,27 +85,17 @@ function HomeRoute() {
 // AI작성: 인증된 사용자만 작업 화면을 렌더링하는 라우트 가드다.
 function ProtectedRoute() {
   // AI작성: 새로고침 뒤에도 HttpOnly refresh 쿠키로 세션을 복원한 뒤 보호 화면을 렌더링한다.
-  const [status, setStatus] = useState(hasSession() ? "ready" : "checking");
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const initialized = useAuthStore((state) => state.initialized);
   const location = useLocation();
 
   // AI작성: 최초 진입에는 세션을 복원하고, 재발급 실패 이벤트에는 로그인 화면으로 전환한다.
   useEffect(() => {
-    let active = true;
-    if (!hasSession()) {
-      restoreSession().then((restored) => {
-        if (active) setStatus(restored ? "ready" : "anonymous");
-      });
-    }
-    const expired = () => active && setStatus("anonymous");
-    window.addEventListener("auth:expired", expired);
-    return () => {
-      active = false;
-      window.removeEventListener("auth:expired", expired);
-    };
-  }, [location.pathname]);
+    if (!initialized) restoreSession();
+  }, [initialized]);
 
-  if (status === "checking") return <div className="auth">Loading...</div>;
-  if (status === "anonymous") return <Navigate to="/login" replace state={{ from: location }} />;
+  if (!initialized) return <div className="auth">Loading...</div>;
+  if (!accessToken) return <Navigate to="/login" replace state={{ from: location }} />;
   return <WorkLayout />;
 }
 
