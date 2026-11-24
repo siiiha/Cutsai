@@ -2,11 +2,8 @@ package com.siha.cutsai.auth;
 
 import com.siha.cutsai.common.exception.ApiException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.HexFormat;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -33,8 +30,8 @@ public class LoginService {
     @Transactional(noRollbackFor = ApiException.class)
     public long authenticate(String email, String password, String remoteAddress) {
         String normalizedEmail = email.strip().toLowerCase(Locale.ROOT);
-        LimitKey accountKey = new LimitKey("ACCOUNT", hash(normalizedEmail));
-        LimitKey ipKey = new LimitKey("IP", hash(remoteAddress));
+        LimitKey accountKey = new LimitKey("ACCOUNT", AuthHash.sha256(normalizedEmail));
+        LimitKey ipKey = new LimitKey("IP", AuthHash.sha256(remoteAddress));
 
         // Always acquire the account row before the IP row.
         Limit account = lockLimit(accountKey);
@@ -103,15 +100,6 @@ public class LoginService {
     private static ApiException locked() {
         return new ApiException(HttpStatus.TOO_MANY_REQUESTS, "AUTH-LOGIN-LOCKED",
                 "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.");
-    }
-
-    private static String hash(String value) {
-        try {
-            byte[] bytes = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(bytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is unavailable", e);
-        }
     }
 
     private record MemberCredentials(long id, String passwordHash) {}
