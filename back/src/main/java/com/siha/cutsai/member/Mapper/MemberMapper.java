@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /** AI작성: 회원 계정과 내 정보 조회를 위한 DB 접근을 담당한다. */
 @Mapper
@@ -32,6 +33,11 @@ public interface MemberMapper {
             """)
     int insert(@Param("email") String email, @Param("passwordHash") String passwordHash,
                @Param("nickname") String nickname, @Param("createdAt") LocalDateTime createdAt);
+
+    /** AI작성: 지정한 회원의 비밀번호 해시를 변경한다. */
+    @Update("UPDATE member SET password_hash = #{passwordHash}, updated_at = #{updatedAt} WHERE member_id = #{memberId}")
+    int updatePassword(@Param("memberId") long memberId, @Param("passwordHash") String passwordHash,
+                       @Param("updatedAt") LocalDateTime updatedAt);
 
     /** AI작성: 인증된 회원 번호로 내 정보 응답에 필요한 필드를 조회한다. */
     @Select("""
