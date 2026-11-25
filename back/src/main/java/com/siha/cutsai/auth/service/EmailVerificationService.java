@@ -11,8 +11,8 @@ public interface EmailVerificationService {
     /** AI작성: 이메일과 목적에 해당하는 6자리 코드를 검증한다. */
     void verify(String email, Purpose purpose, String code);
 
-    /** AI작성: 가입 또는 재설정 트랜잭션에서 인증 성공 여부를 확인하고 사용 완료한다. */
-    void consumeVerified(String email, Purpose purpose);
+    /** AI작성: 인증된 이메일과 코드를 확인하고 가입 또는 재설정 트랜잭션에서 사용 완료한다. */
+    void consumeVerified(String email, Purpose purpose, String code);
 
     /** AI작성: 이메일 인증을 요청한 사용 목적이다. */
     enum Purpose {

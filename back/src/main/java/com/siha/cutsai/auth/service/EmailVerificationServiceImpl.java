@@ -66,11 +66,13 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     /** AI작성: 호출자의 가입·재설정 트랜잭션 안에서 인증을 확인하고 한 번만 사용한다. */
     @Override
     @Transactional
-    public void consumeVerified(String email, Purpose purpose) {
+    public void consumeVerified(String email, Purpose purpose, String code) {
         String normalized = normalize(email, purpose);
         Verification state = mapper.findForUpdate(normalized, purpose.name()).orElseThrow(this::invalidCode);
         LocalDateTime now = now();
-        if (state.verifiedAt() == null || state.failedAttempts() >= 5 || !state.expiresAt().isAfter(now)
+        if (code == null || !code.matches("[0-9]{6}") || state.verifiedAt() == null
+                || state.failedAttempts() >= 5 || !state.expiresAt().isAfter(now)
+                || !encoder.matches(code, state.codeHash())
                 || mapper.consume(normalized, purpose.name(), now) != 1) {
             throw invalidCode();
         }

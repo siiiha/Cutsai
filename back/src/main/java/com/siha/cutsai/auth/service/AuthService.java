@@ -62,7 +62,8 @@ public class AuthService {
             throw new ApiException(HttpStatus.CONFLICT, "AUTH-NICKNAME-DUPLICATED", "이미 사용 중인 닉네임입니다.");
         }
         // AI작성: 회원 저장과 같은 트랜잭션에서 가입 목적의 이메일 인증을 확인하고 사용 완료한다.
-        emailVerificationService.consumeVerified(email, EmailVerificationService.Purpose.SIGNUP);
+        emailVerificationService.consumeVerified(email, EmailVerificationService.Purpose.SIGNUP,
+                request.emailVerificationCode());
         memberMapper.insert(email, passwordEncoder.encode(request.password()), nickname, LocalDateTime.now(ZoneOffset.UTC));
     }
 
