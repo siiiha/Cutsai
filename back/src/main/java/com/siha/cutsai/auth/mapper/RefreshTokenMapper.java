@@ -27,6 +27,13 @@ public interface RefreshTokenMapper {
     int revoke(@Param("memberId") long memberId, @Param("tokenHash") String tokenHash,
                @Param("revokedAt") LocalDateTime revokedAt);
 
+    /** AI작성: 비밀번호 재설정 시 해당 회원의 폐기되지 않은 토큰을 모두 폐기한다. */
+    @Update("""
+            UPDATE refresh_token SET revoked_at = #{revokedAt}
+            WHERE member_id = #{memberId} AND revoked_at IS NULL
+            """)
+    int revokeAllForMember(@Param("memberId") long memberId, @Param("revokedAt") LocalDateTime revokedAt);
+
     /** AI작성: 해시 처리된 새 refresh 토큰 정보를 저장한다. */
     @Insert("""
             INSERT INTO refresh_token (member_id, token_hash, expires_at, created_at)
