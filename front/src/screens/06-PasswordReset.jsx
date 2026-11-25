@@ -1,37 +1,77 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+﻿import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import EmailVerification from "../components/EmailVerification.jsx";
+import client from "../api/client.js";
 
+// AI작성: 재설정용 이메일 인증과 새 비밀번호 입력을 처리한다.
 export default function PasswordReset() {
-  // AI작성: 인증된 이메일과 코드는 비밀번호 재설정 요청에 사용한다.
+  const navigate = useNavigate();
   const [verification, setVerification] = useState({ email: "", verified: false, code: "" });
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // AI작성: 서버가 비밀번호 변경을 완료한 뒤에만 완료 화면으로 이동한다.
+  async function submit(event) {
+    event.preventDefault();
+    if (submitting) return;
+    if (!verification.verified) {
+      setError("이메일 인증을 완료해 주세요.");
+      return;
+    }
+    if (password.length < 8 || password.length > 16) {
+      setError("비밀번호는 8~16자로 입력해 주세요.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError("비밀번호 확인이 일치하지 않습니다.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+    try {
+      await client.post("/auth/password-resets", {
+        email: verification.email,
+        code: verification.code,
+        newPassword: password,
+      });
+      navigate("/password/changed");
+    } catch (requestError) {
+      setError(requestError.response?.data?.error?.message || "비밀번호를 변경하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
-    <>
-      <div className={"auth"}>
-        <div className={"card "}>
-          <div className={"brand"}>
-            <span className={"mark"}>{"✎"}</span>
-            {"Cutsai"}
-          </div>
-          <h1>{"비밀번호 재설정"}</h1>
-          <div className={"form"}>
-            {/* AI작성: 비밀번호 재설정 목적의 이메일 인증을 공통 구성요소로 처리한다. */}
-            <EmailVerification purpose="PASSWORD_RESET" onChange={setVerification} />
-            <label className={"field"}>
-              {"새 비밀번호"}
-              <input placeholder={"8~16자 · 영문, 숫자, 특수문자 사용 가능"} />
-              <span className={"eye"}></span>
-            </label>
-            <label className={"field"}>
-              {"새 비밀번호 확인"}
-              <input placeholder={"비밀번호 다시 입력"} />
-              <span className={"eye"}></span>
-            </label>
-            <button className={"primary"} disabled={!verification.verified}>{"비밀번호 변경"}</button>
-          </div>
-          <div className={"foot"}><Link to="/login">로그인으로 돌아가기</Link></div>
-        </div>
+    <div className="auth">
+      <div className="card">
+        <div className="brand"><span className="mark">✎</span>Cutsai</div>
+        <h1>비밀번호 재설정</h1>
+        <form className="form" onSubmit={submit}>
+          {/* AI작성: 재설정 목적의 인증된 이메일과 인증번호를 요청에 전달한다. */}
+          <EmailVerification purpose="PASSWORD_RESET" onChange={setVerification} />
+          <label className="field">
+            새 비밀번호
+            <input type="password" placeholder="8~16자 · 영문, 숫자, 특수문자 사용 가능"
+              value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required />
+          </label>
+          <label className="field">
+            새 비밀번호 확인
+            <input type="password" placeholder="비밀번호 다시 입력" value={passwordConfirm}
+              onChange={(event) => setPasswordConfirm(event.target.value)} autoComplete="new-password" required />
+          </label>
+          {error && <p role="alert">{error}</p>}
+          {/* AI작성: 시안의 공통 클릭 전환을 막아 서버 성공 전에 완료 화면으로 이동하지 않는다. */}
+          <button className="primary" type="submit" disabled={!verification.verified || submitting}
+            onClick={(event) => event.stopPropagation()}>
+            {submitting ? "변경 중..." : "비밀번호 변경"}
+          </button>
+        </form>
+        <div className="foot"><Link to="/login">로그인으로 돌아가기</Link></div>
       </div>
-    </>
+    </div>
   );
 }
