@@ -63,6 +63,14 @@ class EmailVerificationServiceImplTest {
                     old.failedAttempts(), old.resendWindowStartedAt(), old.resendCount()));
             return 1;
         });
+        when(mapper.consume(anyString(), anyString(), any())).thenAnswer(call -> {
+            String key = key(call.getArgument(0), call.getArgument(1));
+            Verification old = states.get(key);
+            if (old == null || old.verifiedAt() == null) return 0;
+            states.put(key, new Verification(old.codeHash(), call.getArgument(2), null, old.failedAttempts(),
+                    old.resendWindowStartedAt(), old.resendCount()));
+            return 1;
+        });
         service = new EmailVerificationServiceImpl(mapper, members, encoder, provider);
     }
 
@@ -129,6 +137,44 @@ class EmailVerificationServiceImplTest {
     void appliesResendLimitToBothPaths() {
         service.send("test@example.com", Purpose.SIGNUP);
         for (int i = 0; i < 5; i++) service.resend("test@example.com", Purpose.SIGNUP);
+        assertEquals("AUTH-006", assertThrows(ApiException.class,
+                () -> service.send("test@example.com", Purpose.SIGNUP)).getCode());
+    }
+
+    /** AI작성: 코드가 만료되어도 아직 끝나지 않은 발송 제한은 유지한다. */
+    @Test
+    void expiredCodeDoesNotResetResendLimit() {
+        service.send("test@example.com", Purpose.SIGNUP);
+        for (int i = 0; i < 5; i++) service.resend("test@example.com", Purpose.SIGNUP);
+        Verification old = state(Purpose.SIGNUP);
+        states.put(key("test@example.com", "SIGNUP"), new Verification(old.codeHash(), now().minusSeconds(1),
+                old.verifiedAt(), old.failedAttempts(), old.resendWindowStartedAt(), old.resendCount()));
+        assertEquals("AUTH-006", assertThrows(ApiException.class,
+                () -> service.resend("test@example.com", Purpose.SIGNUP)).getCode());
+    }
+
+    /** AI작성: 발송 제한 구간이 끝나면 이전 코드와 별개로 새 구간을 시작한다. */
+    @Test
+    void expiredResendWindowAllowsNewCode() {
+        service.send("test@example.com", Purpose.SIGNUP);
+        for (int i = 0; i < 5; i++) service.resend("test@example.com", Purpose.SIGNUP);
+        Verification old = state(Purpose.SIGNUP);
+        states.put(key("test@example.com", "SIGNUP"), new Verification(old.codeHash(), old.expiresAt(),
+                old.verifiedAt(), old.failedAttempts(), now().minusMinutes(11), old.resendCount()));
+        assertDoesNotThrow(() -> service.resend("test@example.com", Purpose.SIGNUP));
+        assertEquals(1, state(Purpose.SIGNUP).resendCount());
+    }
+
+    /** AI작성: 인증 사용은 한 번만 허용하며 기존 발송 제한을 지우지 않는다. */
+    @Test
+    void consumingVerificationPreservesResendLimit() {
+        service.send("test@example.com", Purpose.SIGNUP);
+        for (int i = 0; i < 5; i++) service.resend("test@example.com", Purpose.SIGNUP);
+        service.verify("test@example.com", Purpose.SIGNUP, delivered.get(Purpose.SIGNUP));
+        service.consumeVerified("test@example.com", Purpose.SIGNUP);
+        assertNull(state(Purpose.SIGNUP).verifiedAt());
+        assertEquals(5, state(Purpose.SIGNUP).resendCount());
+        assertThrows(ApiException.class, () -> service.consumeVerified("test@example.com", Purpose.SIGNUP));
         assertEquals("AUTH-006", assertThrows(ApiException.class,
                 () -> service.send("test@example.com", Purpose.SIGNUP)).getCode());
     }
