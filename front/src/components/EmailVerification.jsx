@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import client from "../api/client.js";
 
 // AI작성: 가입과 비밀번호 재설정에서 이메일 인증 입력과 상태를 공유한다.
@@ -16,11 +16,19 @@ export default function EmailVerification({ purpose, onChange }) {
   // AI작성: 표시용 남은 시간을 실제 시각과 비교해 갱신한다.
   useEffect(() => {
     if (!expiresAt) return undefined;
-    const update = () => setRemaining(Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)));
+    const update = () => {
+      const next = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+      setRemaining(next);
+      if (next === 0) {
+        setVerified(false);
+        setMessage("인증 시간이 만료되었습니다. 인증번호를 다시 발송해 주세요.");
+        onChange?.({ email: email.trim(), verified: false, code: "" });
+      }
+    };
     update();
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
-  }, [expiresAt]);
+  }, [expiresAt, email, onChange]);
 
   // AI작성: 이메일 변경 시 이전 인증 결과와 진행 중인 응답을 무효화한다.
   function changeEmail(event) {
