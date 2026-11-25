@@ -25,14 +25,18 @@ public class AuthService {
     private final RefreshTokenMapper refreshTokenMapper;
     private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
+    // AI작성: 회원가입에서 인증된 이메일을 한 번만 사용한다.
+    private final EmailVerificationService emailVerificationService;
 
     public AuthService(LoginService loginService, JwtProvider jwtProvider, RefreshTokenMapper refreshTokenMapper,
-                       MemberMapper memberMapper, PasswordEncoder passwordEncoder) {
+                       MemberMapper memberMapper, PasswordEncoder passwordEncoder,
+                       EmailVerificationService emailVerificationService) {
         this.loginService = loginService;
         this.jwtProvider = jwtProvider;
         this.refreshTokenMapper = refreshTokenMapper;
         this.memberMapper = memberMapper;
         this.passwordEncoder = passwordEncoder;
+        this.emailVerificationService = emailVerificationService;
     }
 
     /** AI작성: 로그인 성공 후 최초 refresh 만료 시각을 7일 뒤로 고정해 토큰을 발급한다. */
@@ -57,6 +61,8 @@ public class AuthService {
         if (memberMapper.existsByNickname(nickname)) {
             throw new ApiException(HttpStatus.CONFLICT, "AUTH-NICKNAME-DUPLICATED", "이미 사용 중인 닉네임입니다.");
         }
+        // AI작성: 회원 저장과 같은 트랜잭션에서 가입 목적의 이메일 인증을 확인하고 사용 완료한다.
+        emailVerificationService.consumeVerified(email, EmailVerificationService.Purpose.SIGNUP);
         memberMapper.insert(email, passwordEncoder.encode(request.password()), nickname, LocalDateTime.now(ZoneOffset.UTC));
     }
 
