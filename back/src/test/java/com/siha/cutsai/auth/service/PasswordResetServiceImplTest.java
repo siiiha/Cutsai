@@ -5,10 +5,12 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
+import com.siha.cutsai.auth.mapper.LoginRateLimitMapper;
 import com.siha.cutsai.auth.service.EmailVerificationService.Purpose;
 import com.siha.cutsai.common.exception.ApiException;
 import com.siha.cutsai.member.mapper.MemberMapper;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -79,5 +81,31 @@ class PasswordResetServiceImplTest {
         assertNotEquals("newpass1!", storedHash.getValue());
         assertTrue(realEncoder.matches("newpass1!", storedHash.getValue()));
         assertFalse(realEncoder.matches("oldpass1!", storedHash.getValue()));
+    }
+
+    /** AI작성: 재설정 후 기존 비밀번호는 거부되고 새 비밀번호로 로그인 검증에 성공한다. */
+    @Test
+    void loginUsesChangedPasswordAfterReset() {
+        BCryptPasswordEncoder realEncoder = new BCryptPasswordEncoder(4);
+        AtomicReference<String> storedHash = new AtomicReference<>(realEncoder.encode("oldpass1!"));
+        LoginRateLimitMapper limits = mock(LoginRateLimitMapper.class);
+        when(limits.findForUpdate(anyString(), anyString())).thenReturn(new LoginRateLimitMapper.Limit(0, null));
+        when(members.findCredentialsByEmail("writer@example.com"))
+                .thenAnswer(call -> Optional.of(new MemberMapper.MemberCredentials(1L, storedHash.get())));
+        when(members.findCredentialsByEmailForUpdate("writer@example.com"))
+                .thenAnswer(call -> Optional.of(new MemberMapper.MemberCredentials(1L, storedHash.get())));
+        when(members.updatePassword(eq(1L), anyString(), any())).thenAnswer(call -> {
+            storedHash.set(call.getArgument(1));
+            return 1;
+        });
+        service = new PasswordResetServiceImpl(verification, members, tokens, realEncoder);
+        LoginService loginService = new LoginService(limits, members, realEncoder);
+
+        service.resetPassword("writer@example.com", "123456", "newpass1!");
+
+        ApiException error = assertThrows(ApiException.class,
+                () -> loginService.authenticate("writer@example.com", "oldpass1!", "127.0.0.1"));
+        assertEquals("AUTH-LOGIN-INVALID", error.getCode());
+        assertEquals(1L, loginService.authenticate("writer@example.com", "newpass1!", "127.0.0.1"));
     }
 }
