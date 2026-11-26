@@ -30,6 +30,11 @@ export default function Signup() {
       setError("비밀번호는 8~16자로 입력해 주세요.");
       return;
     }
+    // AI작성: 서버와 동일하게 영문·숫자·특수문자를 각각 포함하는지 확인한다.
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password) || !/[\p{P}\p{S}]/u.test(password)) {
+      setError("비밀번호에 영문, 숫자, 특수문자를 각각 하나 이상 포함해 주세요.");
+      return;
+    }
     if (password !== passwordConfirm) {
       setError("비밀번호 확인이 일치하지 않습니다.");
       return;
@@ -72,7 +77,7 @@ export default function Signup() {
           </label>
           <label className="field">
             비밀번호
-            <input type="password" placeholder="8~16자 · 영문, 숫자, 특수문자 사용 가능"
+            <input type="password" placeholder="8~16자 · 영문, 숫자, 특수문자 각각 포함"
               value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required />
           </label>
           <label className="field">
