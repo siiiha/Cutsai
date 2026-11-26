@@ -14,6 +14,7 @@ import com.siha.cutsai.member.mapper.MemberMapper;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -105,5 +106,20 @@ class AuthServiceRegisterTest {
         assertEquals("VALIDATION-001", error.getCode());
         verify(members, never()).insert(anyString(), anyString(), anyString(), any());
         verifyNoInteractions(verification);
+    }
+
+    /** AI작성: 사전 검사 후 발생한 DB 중복 오류도 가입 중복 응답으로 변환한다. */
+    @Test
+    void rejectsDuplicateRaisedDuringInsert() {
+        when(members.insert(anyString(), anyString(), anyString(), any()))
+                .thenThrow(new DuplicateKeyException("duplicate"));
+
+        ApiException error = assertThrows(ApiException.class,
+                () -> service.register(new RegisterRequest("writer@example.com", "password123", "작가", "123456")));
+
+        assertEquals(HttpStatus.CONFLICT, error.getStatus());
+        assertEquals("AUTH-003", error.getCode());
+        verify(verification).consumeVerified("writer@example.com", Purpose.SIGNUP, "123456");
+        verifyNoInteractions(jwtProvider, refreshTokens);
     }
 }
