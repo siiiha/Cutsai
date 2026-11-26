@@ -180,6 +180,21 @@ class EmailVerificationServiceImplTest {
                 () -> service.send("test@example.com", Purpose.SIGNUP)).getCode());
     }
 
+    /** AI작성: 인증에 사용한 번호와 가입 시 제출한 번호가 다르면 인증 사용을 거부한다. */
+    @Test
+    void rejectsDifferentCodeWhenConsumingVerification() {
+        service.send("test@example.com", Purpose.SIGNUP);
+        String correct = delivered.get(Purpose.SIGNUP);
+        String wrong = correct.equals("000000") ? "000001" : "000000";
+        service.verify("test@example.com", Purpose.SIGNUP, correct);
+
+        ApiException error = assertThrows(ApiException.class,
+                () -> service.consumeVerified("test@example.com", Purpose.SIGNUP, wrong));
+        assertEquals("AUTH-005", error.getCode());
+        assertNotNull(state(Purpose.SIGNUP).verifiedAt());
+        assertDoesNotThrow(() -> service.consumeVerified("test@example.com", Purpose.SIGNUP, correct));
+    }
+
     /** AI작성: 목적에 해당하는 테스트 인증 상태를 조회한다. */
     private Verification state(Purpose purpose) {
         return states.get(key("test@example.com", purpose.name()));
