@@ -11,7 +11,9 @@ import com.siha.cutsai.member.mapper.MemberMapper;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /** AI작성: 비밀번호 재설정의 인증·저장·토큰 폐기 처리를 확인한다. */
@@ -59,5 +61,23 @@ class PasswordResetServiceImplTest {
         assertThrows(ApiException.class, () -> service.resetPassword("writer@example.com", "123456", "newpass1!"));
 
         verifyNoInteractions(members, tokens, encoder);
+    }
+
+    /** AI작성: 재설정 시 저장하는 BCrypt 해시는 새 비밀번호만 검증한다. */
+    @Test
+    void storesBcryptHashForNewPassword() {
+        BCryptPasswordEncoder realEncoder = new BCryptPasswordEncoder(4);
+        service = new PasswordResetServiceImpl(verification, members, tokens, realEncoder);
+        when(members.findCredentialsByEmail("writer@example.com"))
+                .thenReturn(Optional.of(new MemberMapper.MemberCredentials(1L, realEncoder.encode("oldpass1!"))));
+        when(members.updatePassword(eq(1L), anyString(), any())).thenReturn(1);
+
+        service.resetPassword("writer@example.com", "123456", "newpass1!");
+
+        ArgumentCaptor<String> storedHash = ArgumentCaptor.forClass(String.class);
+        verify(members).updatePassword(eq(1L), storedHash.capture(), any());
+        assertNotEquals("newpass1!", storedHash.getValue());
+        assertTrue(realEncoder.matches("newpass1!", storedHash.getValue()));
+        assertFalse(realEncoder.matches("oldpass1!", storedHash.getValue()));
     }
 }
