@@ -71,4 +71,39 @@ class AuthServiceRegisterTest {
         assertEquals("VALIDATION-001", error.getCode());
         verify(members, never()).insert(anyString(), anyString(), anyString(), any());
     }
+
+    /** AI작성: 이메일이 중복이면 가입과 인증 사용을 진행하지 않는다. */
+    @Test
+    void rejectsDuplicateEmail() {
+        when(members.existsByEmail("writer@example.com")).thenReturn(true);
+        ApiException error = assertThrows(ApiException.class,
+                () -> service.register(new RegisterRequest("writer@example.com", "password123", "작가", "123456")));
+        assertEquals(HttpStatus.CONFLICT, error.getStatus());
+        assertEquals("AUTH-003", error.getCode());
+        verify(members, never()).insert(anyString(), anyString(), anyString(), any());
+        verifyNoInteractions(verification);
+    }
+
+    /** AI작성: 닉네임이 중복이면 가입과 인증 사용을 진행하지 않는다. */
+    @Test
+    void rejectsDuplicateNickname() {
+        when(members.existsByNickname("작가")).thenReturn(true);
+        ApiException error = assertThrows(ApiException.class,
+                () -> service.register(new RegisterRequest("writer@example.com", "password123", "작가", "123456")));
+        assertEquals(HttpStatus.CONFLICT, error.getStatus());
+        assertEquals("AUTH-003", error.getCode());
+        verify(members, never()).insert(anyString(), anyString(), anyString(), any());
+        verifyNoInteractions(verification);
+    }
+
+    /** AI작성: 공백 제거 후 한 글자가 되는 닉네임은 회원 저장 전에 거부한다. */
+    @Test
+    void rejectsNicknameTooShortAfterTrimming() {
+        ApiException error = assertThrows(ApiException.class,
+                () -> service.register(new RegisterRequest("writer@example.com", "password123", " 가 ", "123456")));
+        assertEquals(HttpStatus.BAD_REQUEST, error.getStatus());
+        assertEquals("VALIDATION-001", error.getCode());
+        verify(members, never()).insert(anyString(), anyString(), anyString(), any());
+        verifyNoInteractions(verification);
+    }
 }
