@@ -35,10 +35,10 @@ class AuthServiceRegisterTest {
     /** AI작성: 가입 목적 인증을 사용 완료한 뒤 회원을 저장한다. */
     @Test
     void consumesSignupVerificationBeforeSavingMember() {
-        service.register(new RegisterRequest("Writer@Example.com", "password123", "작가"));
+        service.register(new RegisterRequest("Writer@Example.com", "password123", "작가", "123456"));
 
         var order = inOrder(verification, members);
-        order.verify(verification).consumeVerified("writer@example.com", Purpose.SIGNUP);
+        order.verify(verification).consumeVerified("writer@example.com", Purpose.SIGNUP, "123456");
         order.verify(members).insert(eq("writer@example.com"), eq("encoded-password"), eq("작가"), any());
     }
 
@@ -46,10 +46,10 @@ class AuthServiceRegisterTest {
     @Test
     void doesNotSaveMemberWhenVerificationFails() {
         doThrow(new ApiException(HttpStatus.BAD_REQUEST, "AUTH-005", "인증이 필요합니다."))
-                .when(verification).consumeVerified("writer@example.com", Purpose.SIGNUP);
+                .when(verification).consumeVerified("writer@example.com", Purpose.SIGNUP, "123456");
 
         assertThrows(ApiException.class,
-                () -> service.register(new RegisterRequest("writer@example.com", "password123", "작가")));
+                () -> service.register(new RegisterRequest("writer@example.com", "password123", "작가", "123456")));
         verify(members, never()).insert(anyString(), anyString(), anyString(), any());
     }
 }

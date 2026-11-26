@@ -171,10 +171,11 @@ class EmailVerificationServiceImplTest {
         service.send("test@example.com", Purpose.SIGNUP);
         for (int i = 0; i < 5; i++) service.resend("test@example.com", Purpose.SIGNUP);
         service.verify("test@example.com", Purpose.SIGNUP, delivered.get(Purpose.SIGNUP));
-        service.consumeVerified("test@example.com", Purpose.SIGNUP);
+        service.consumeVerified("test@example.com", Purpose.SIGNUP, delivered.get(Purpose.SIGNUP));
         assertNull(state(Purpose.SIGNUP).verifiedAt());
         assertEquals(5, state(Purpose.SIGNUP).resendCount());
-        assertThrows(ApiException.class, () -> service.consumeVerified("test@example.com", Purpose.SIGNUP));
+        assertThrows(ApiException.class, () -> service.consumeVerified("test@example.com", Purpose.SIGNUP,
+                delivered.get(Purpose.SIGNUP)));
         assertEquals("AUTH-006", assertThrows(ApiException.class,
                 () -> service.send("test@example.com", Purpose.SIGNUP)).getCode());
     }
