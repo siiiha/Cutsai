@@ -70,8 +70,16 @@ public class AuthService {
             throw new ApiException(HttpStatus.CONFLICT, "AUTH-003", "이미 사용 중인 닉네임입니다.");
         }
         // AI작성: 회원 저장과 같은 트랜잭션에서 가입 목적의 이메일 인증을 확인하고 사용 완료한다.
-        emailVerificationService.consumeVerified(email, EmailVerificationService.Purpose.SIGNUP,
-                request.emailVerificationCode());
+        try {
+            emailVerificationService.consumeVerified(email, EmailVerificationService.Purpose.SIGNUP,
+                    request.emailVerificationCode());
+        } catch (ApiException e) {
+            // AI작성: 가입 명세에 맞게 인증 미완료·불일치·만료를 입력 오류로 안내한다.
+            if ("AUTH-005".equals(e.getCode())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION-001", "이메일 인증을 확인해 주세요.");
+            }
+            throw e;
+        }
         try {
             memberMapper.insert(email, passwordEncoder.encode(request.password()), nickname, LocalDateTime.now(ZoneOffset.UTC));
         } catch (DuplicateKeyException e) {
