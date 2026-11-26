@@ -42,5 +42,8 @@ public class PasswordResetController {
     /** AI작성: 비밀번호 재설정에 필요한 이메일, 인증번호, 새 비밀번호다. */
     public record PasswordResetRequest(@NotBlank @Email @Size(max = 254) String email,
                                        @NotBlank @Pattern(regexp = "[0-9]{6}") String code,
-                                       @NotBlank @Size(min = 8, max = 16) String newPassword) {}
+                                       /* AI작성: 재설정 비밀번호도 영문·숫자·특수문자를 각각 포함한다. */
+                                       @NotBlank @Size(min = 8, max = 16)
+                                       @Pattern(regexp = "(?s)^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[\\p{P}\\p{S}]).*$")
+                                       String newPassword) {}
 }
