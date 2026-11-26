@@ -1,4 +1,9 @@
+import { Navigate, useLocation } from "react-router-dom";
+
 export default function SignupComplete() {
+  // AI작성: 가입 성공을 거치지 않은 완료 화면 접근은 가입 화면으로 돌려보낸다.
+  const location = useLocation();
+  if (!location.state?.signupCompleted) return <Navigate to="/signup" replace />;
   return (
     <>
       <div className={"auth"}>

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import EmailVerification from "../components/EmailVerification.jsx";
 import client from "../api/client.js";
@@ -44,7 +44,8 @@ export default function Signup() {
         nickname: trimmedNickname,
         password,
       });
-      navigate("/signup/complete");
+      // AI작성: 서버 가입 성공을 완료 화면에 전달한다.
+      navigate("/signup/complete", { state: { signupCompleted: true }, replace: true });
     } catch (requestError) {
       setError(requestError.response?.data?.error?.message || "회원가입에 실패했습니다. 다시 시도해 주세요.");
     } finally {
