@@ -3,6 +3,7 @@ package com.siha.cutsai.auth.service;
 import com.siha.cutsai.auth.AuthHash;
 import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
 import com.siha.cutsai.auth.dto.RegisterRequest;
+import com.siha.cutsai.auth.dto.RegisterResponse;
 import com.siha.cutsai.common.exception.ApiException;
 import com.siha.cutsai.common.jwt.JwtProvider;
 import com.siha.cutsai.member.mapper.MemberMapper;
@@ -50,7 +51,7 @@ public class AuthService {
 
     /** AI작성: 이메일·닉네임 중복을 검사하고 BCrypt 비밀번호 해시로 회원을 가입시킨다. */
     @Transactional
-    public void register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
         String email = request.email().strip().toLowerCase(Locale.ROOT);
         String nickname = request.nickname().strip();
         // AI작성: 앞뒤 공백을 제거한 실제 닉네임도 가입 길이 기준을 만족해야 한다.
@@ -77,6 +78,12 @@ public class AuthService {
             // AI작성: 동시 가입으로 사전 검사를 통과해도 DB 중복 제약을 공통 오류로 안내한다.
             throw new ApiException(HttpStatus.CONFLICT, "AUTH-003", "이미 사용 중인 이메일 또는 닉네임입니다.");
         }
+        // AI작성: 저장된 회원의 토큰과 응답을 가입 트랜잭션 안에서 함께 생성한다.
+        long memberId = memberMapper.findCredentialsByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("가입한 회원을 조회할 수 없습니다.")).memberId();
+        Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        Tokens tokens = issueTokens(memberId, now, now.plus(JwtProvider.REFRESH_VALIDITY));
+        return new RegisterResponse(tokens.accessToken(), tokens.refreshToken(), new RegisterResponse.Member(email, nickname));
     }
 
     /** AI작성: 사용 전 refresh 토큰을 폐기하고 최초 만료 시각을 유지한 새 토큰 쌍을 발급한다. */
