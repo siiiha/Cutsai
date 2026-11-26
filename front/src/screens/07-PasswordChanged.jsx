@@ -1,4 +1,9 @@
+import { Navigate, useLocation } from "react-router-dom";
+
 export default function PasswordChanged() {
+  // AI작성: 변경 성공을 거치지 않은 완료 화면 접근은 재설정 화면으로 돌려보낸다.
+  const location = useLocation();
+  if (!location.state?.passwordResetCompleted) return <Navigate to="/password/reset" replace />;
   return (
     <>
       <div className={"auth"}>

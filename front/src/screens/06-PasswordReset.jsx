@@ -37,12 +37,17 @@ export default function PasswordReset() {
     setSubmitting(true);
     setError("");
     try {
-      await client.post("/auth/password-resets", {
+      const response = await client.post("/auth/password-resets", {
         email: verification.email,
         code: verification.code,
         newPassword: password,
       });
-      navigate("/password/changed");
+      // AI작성: 서버가 변경 성공을 확정한 경우에만 완료 화면으로 이동한다.
+      if (response.status !== 204) {
+        setError("비밀번호 변경 완료 여부를 확인하지 못했습니다. 다시 시도해 주세요.");
+        return;
+      }
+      navigate("/password/changed", { state: { passwordResetCompleted: true }, replace: true });
     } catch (requestError) {
       setError(requestError.response?.data?.error?.message || "비밀번호를 변경하지 못했습니다. 다시 시도해 주세요.");
     } finally {
