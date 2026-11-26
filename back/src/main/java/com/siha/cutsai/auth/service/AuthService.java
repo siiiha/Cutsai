@@ -71,6 +71,8 @@ public class AuthService {
     @Transactional
     public Tokens refresh(String refreshToken) {
         long memberId = jwtProvider.readRefreshMember(refreshToken);
+        // AI작성: 재설정과 같은 순서로 회원을 먼저 잠근 뒤 기존 토큰을 확인한다.
+        memberMapper.lockById(memberId).orElseThrow(JwtProvider::invalidRefresh);
         String hash = AuthHash.sha256(refreshToken);
         RefreshTokenMapper.RefreshTokenSession session = refreshTokenMapper.findForUpdate(memberId, hash)
                 .orElseThrow(JwtProvider::invalidRefresh);

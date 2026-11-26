@@ -18,6 +18,17 @@ public interface MemberMapper {
             """)
     Optional<MemberCredentials> findCredentialsByEmail(@Param("email") String email);
 
+    /** AI작성: 로그인 비밀번호 검증과 재설정이 겹치지 않도록 회원 행을 잠근다. */
+    @Select("""
+            SELECT member_id, password_hash FROM member
+            WHERE BINARY LOWER(email) = #{email} FOR UPDATE
+            """)
+    Optional<MemberCredentials> findCredentialsByEmailForUpdate(@Param("email") String email);
+
+    /** AI작성: 토큰 재발급과 비밀번호 재설정이 겹치지 않도록 회원 행을 잠근다. */
+    @Select("SELECT member_id FROM member WHERE member_id = #{memberId} FOR UPDATE")
+    Optional<Long> lockById(@Param("memberId") long memberId);
+
     /** AI작성: 이메일 중복 여부를 확인한다. */
     @Select("SELECT EXISTS(SELECT 1 FROM member WHERE BINARY LOWER(email) = #{email})")
     boolean existsByEmail(@Param("email") String email);

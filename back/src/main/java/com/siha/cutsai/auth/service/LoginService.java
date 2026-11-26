@@ -42,7 +42,8 @@ public class LoginService {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         if (isLocked(account, now) || isLocked(ip, now)) throw locked();
 
-        MemberMapper.MemberCredentials member = memberMapper.findCredentialsByEmail(normalizedEmail).orElse(null);
+        // AI작성: 비밀번호 확인부터 토큰 발급까지 회원 행 잠금을 유지해 재설정과 순서를 맞춘다.
+        MemberMapper.MemberCredentials member = memberMapper.findCredentialsByEmailForUpdate(normalizedEmail).orElse(null);
         boolean withinLimit = password.getBytes(StandardCharsets.UTF_8).length <= 72;
         String hash = member == null ? unknownMemberHash : member.passwordHash();
         if (!withinLimit || !passwordEncoder.matches(withinLimit ? password : "", hash) || member == null) {
