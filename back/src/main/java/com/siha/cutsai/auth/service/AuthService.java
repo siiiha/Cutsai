@@ -52,6 +52,10 @@ public class AuthService {
     public void register(RegisterRequest request) {
         String email = request.email().strip().toLowerCase(Locale.ROOT);
         String nickname = request.nickname().strip();
+        // AI작성: 앞뒤 공백을 제거한 실제 닉네임도 가입 길이 기준을 만족해야 한다.
+        if (nickname.length() < 2 || nickname.length() > 12) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION-001", "닉네임은 2~12자로 입력해 주세요.");
+        }
         if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION-001", "비밀번호 형식을 확인해 주세요.");
         }
