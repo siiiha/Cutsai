@@ -8,7 +8,10 @@ import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
 import com.siha.cutsai.auth.mapper.LoginRateLimitMapper;
 import com.siha.cutsai.auth.service.EmailVerificationService.Purpose;
 import com.siha.cutsai.common.exception.ApiException;
+import com.siha.cutsai.common.jwt.JwtProvider;
 import com.siha.cutsai.member.mapper.MemberMapper;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
@@ -107,5 +110,34 @@ class PasswordResetServiceImplTest {
                 () -> loginService.authenticate("writer@example.com", "oldpass1!", "127.0.0.1"));
         assertEquals("AUTH-LOGIN-INVALID", error.getCode());
         assertEquals(1L, loginService.authenticate("writer@example.com", "newpass1!", "127.0.0.1"));
+    }
+
+    /** AI작성: 재설정으로 폐기된 기존 토큰은 실제 재발급 로직에서 거부된다. */
+    @Test
+    void rejectsOldRefreshTokenAfterPasswordReset() {
+        AtomicReference<LocalDateTime> revokedAt = new AtomicReference<>();
+        LocalDateTime expiresAt = LocalDateTime.now(ZoneOffset.UTC).plusDays(1);
+        when(members.findCredentialsByEmail("writer@example.com"))
+                .thenReturn(Optional.of(new MemberMapper.MemberCredentials(1L, "old-hash")));
+        when(members.lockById(1L)).thenReturn(Optional.of(1L));
+        when(encoder.encode("newpass1!")).thenReturn("new-hash");
+        when(members.updatePassword(eq(1L), eq("new-hash"), any())).thenReturn(1);
+        when(tokens.revokeAllForMember(eq(1L), any())).thenAnswer(call -> {
+            revokedAt.set(call.getArgument(1));
+            return 1;
+        });
+        when(tokens.findForUpdate(eq(1L), anyString())).thenAnswer(call ->
+                Optional.of(new RefreshTokenMapper.RefreshTokenSession(expiresAt, revokedAt.get())));
+        JwtProvider jwtProvider = mock(JwtProvider.class);
+        when(jwtProvider.readRefreshMember("old-refresh-token")).thenReturn(1L);
+        AuthService authService = new AuthService(mock(LoginService.class), jwtProvider, tokens,
+                members, encoder, verification);
+
+        service.resetPassword("writer@example.com", "123456", "newpass1!");
+
+        assertNotNull(revokedAt.get());
+        ApiException error = assertThrows(ApiException.class, () -> authService.refresh("old-refresh-token"));
+        assertEquals(HttpStatus.UNAUTHORIZED, error.getStatus());
+        verify(jwtProvider, never()).createRefreshToken(anyLong(), any(), any());
     }
 }
