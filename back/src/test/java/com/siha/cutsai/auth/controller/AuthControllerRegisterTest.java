@@ -38,7 +38,7 @@ class AuthControllerRegisterTest {
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"writer@example.com","nickname":"작가",
-                                 "password":"password123","emailVerificationCode":"123456"}
+                                 "password":"password123!","emailVerificationCode":"123456"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.access_token").value("access-token"))
@@ -61,6 +61,20 @@ class AuthControllerRegisterTest {
                                  "password":"short","emailVerificationCode":"123456"}
                                 """))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("VALIDATION-001"));
+        verifyNoInteractions(service);
+    }
+
+    /** AI작성: 영문·숫자·특수문자 중 하나라도 빠진 비밀번호를 거부한다. */
+    @Test
+    void rejectsPasswordsMissingRequiredCharacterTypes() throws Exception {
+        for (String password : new String[]{"password!", "1234567!", "password1"}) {
+            String body = """
+                    {"email":"writer@example.com","nickname":"작가",
+                     "password":"%s","emailVerificationCode":"123456"}
+                    """.formatted(password);
+            mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("VALIDATION-001"));
+        }
         verifyNoInteractions(service);
     }
 }
