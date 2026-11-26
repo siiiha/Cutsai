@@ -60,10 +60,12 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION-001", "비밀번호 형식을 확인해 주세요.");
         }
         if (memberMapper.existsByEmail(email)) {
-            throw new ApiException(HttpStatus.CONFLICT, "AUTH-EMAIL-DUPLICATED", "이미 사용 중인 이메일입니다.");
+            // AI작성: 가입 명세의 중복 오류 코드로 반환한다.
+            throw new ApiException(HttpStatus.CONFLICT, "AUTH-003", "이미 사용 중인 이메일입니다.");
         }
         if (memberMapper.existsByNickname(nickname)) {
-            throw new ApiException(HttpStatus.CONFLICT, "AUTH-NICKNAME-DUPLICATED", "이미 사용 중인 닉네임입니다.");
+            // AI작성: 이메일과 동일한 중복 오류 코드를 사용하고 안내 문구로 항목을 구분한다.
+            throw new ApiException(HttpStatus.CONFLICT, "AUTH-003", "이미 사용 중인 닉네임입니다.");
         }
         // AI작성: 회원 저장과 같은 트랜잭션에서 가입 목적의 이메일 인증을 확인하고 사용 완료한다.
         emailVerificationService.consumeVerified(email, EmailVerificationService.Purpose.SIGNUP,
