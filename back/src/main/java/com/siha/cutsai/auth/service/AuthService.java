@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -70,7 +71,12 @@ public class AuthService {
         // AI작성: 회원 저장과 같은 트랜잭션에서 가입 목적의 이메일 인증을 확인하고 사용 완료한다.
         emailVerificationService.consumeVerified(email, EmailVerificationService.Purpose.SIGNUP,
                 request.emailVerificationCode());
-        memberMapper.insert(email, passwordEncoder.encode(request.password()), nickname, LocalDateTime.now(ZoneOffset.UTC));
+        try {
+            memberMapper.insert(email, passwordEncoder.encode(request.password()), nickname, LocalDateTime.now(ZoneOffset.UTC));
+        } catch (DuplicateKeyException e) {
+            // AI작성: 동시 가입으로 사전 검사를 통과해도 DB 중복 제약을 공통 오류로 안내한다.
+            throw new ApiException(HttpStatus.CONFLICT, "AUTH-003", "이미 사용 중인 이메일 또는 닉네임입니다.");
+        }
     }
 
     /** AI작성: 사용 전 refresh 토큰을 폐기하고 최초 만료 시각을 유지한 새 토큰 쌍을 발급한다. */
