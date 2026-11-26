@@ -5,9 +5,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.siha.cutsai.auth.service.PasswordResetService;
+import com.siha.cutsai.common.exception.ApiException;
+import com.siha.cutsai.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -23,7 +26,8 @@ class PasswordResetControllerTest {
         service = mock(PasswordResetService.class);
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mvc = MockMvcBuilders.standaloneSetup(new PasswordResetController(service)).setValidator(validator).build();
+        mvc = MockMvcBuilders.standaloneSetup(new PasswordResetController(service))
+                .setControllerAdvice(new GlobalExceptionHandler()).setValidator(validator).build();
     }
 
     /** AI작성: 올바른 요청이 서비스에 전달되고 성공 응답으로 204를 반환한다. */
@@ -48,5 +52,19 @@ class PasswordResetControllerTest {
                     .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("VALIDATION-001"));
         }
         verifyNoInteractions(service);
+    }
+
+    /** AI작성: 인증되지 않은 재설정 요청은 공통 인증 오류 응답으로 거부한다. */
+    @Test
+    void rejectsUnverifiedReset() throws Exception {
+        doThrow(new ApiException(HttpStatus.BAD_REQUEST, "AUTH-005", "인증 정보를 확인해 주세요."))
+                .when(service).resetPassword("writer@example.com", "123456", "password1!");
+
+        mvc.perform(post("/api/auth/password-resets").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"writer@example.com","code":"123456","newPassword":"password1!"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("AUTH-005"));
     }
 }
