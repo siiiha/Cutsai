@@ -64,8 +64,11 @@ class AuthServiceRegisterTest {
         doThrow(new ApiException(HttpStatus.BAD_REQUEST, "AUTH-005", "인증이 필요합니다."))
                 .when(verification).consumeVerified("writer@example.com", Purpose.SIGNUP, "123456");
 
-        assertThrows(ApiException.class,
+        // AI작성: 가입 인증 실패를 명세의 입력 오류로 변환하는지 확인한다.
+        ApiException error = assertThrows(ApiException.class,
                 () -> service.register(new RegisterRequest("writer@example.com", "password123", "작가", "123456")));
+        assertEquals(HttpStatus.BAD_REQUEST, error.getStatus());
+        assertEquals("VALIDATION-001", error.getCode());
         verify(members, never()).insert(anyString(), anyString(), anyString(), any());
     }
 }
