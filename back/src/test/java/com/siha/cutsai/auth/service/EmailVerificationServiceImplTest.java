@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 /** AI작성: 인증 코드 검증과 재발송 제한의 서비스 규칙을 확인한다. */
 class EmailVerificationServiceImplTest {
     private EmailVerificationMapper mapper;
+    private MemberMapper members;
     private EmailVerificationServiceImpl service;
     private final Map<String, Verification> states = new HashMap<>();
     private final Map<Purpose, String> delivered = new HashMap<>();
@@ -33,7 +34,7 @@ class EmailVerificationServiceImplTest {
     @SuppressWarnings("unchecked")
     void setUp() {
         mapper = mock(EmailVerificationMapper.class);
-        MemberMapper members = mock(MemberMapper.class);
+        members = mock(MemberMapper.class);
         ObjectProvider<EmailVerificationServiceImpl.MailSender> provider = mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn((email, purpose, code) -> delivered.put(purpose, code));
         when(mapper.findForUpdate(anyString(), anyString())).thenAnswer(call ->
@@ -130,6 +131,16 @@ class EmailVerificationServiceImplTest {
         assertNull(state(Purpose.PASSWORD_RESET).verifiedAt());
         service.verify("test@example.com", Purpose.PASSWORD_RESET, delivered.get(Purpose.PASSWORD_RESET));
         assertNotNull(state(Purpose.PASSWORD_RESET).verifiedAt());
+    }
+
+    /** AI작성: 재설정 발송과 재발송은 회원 존재 여부를 조회하지 않는다. */
+    @Test
+    void passwordResetMailDoesNotCheckWhetherMemberExists() {
+        service.send("test@example.com", Purpose.PASSWORD_RESET);
+        service.resend("test@example.com", Purpose.PASSWORD_RESET);
+
+        assertNotNull(delivered.get(Purpose.PASSWORD_RESET));
+        verifyNoInteractions(members);
     }
 
     /** AI작성: 최초 발송 경로로 우회해도 재발송 제한이 유지된다. */
