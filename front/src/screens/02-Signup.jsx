@@ -38,12 +38,17 @@ export default function Signup() {
     setSubmitting(true);
     setError("");
     try {
-      await client.post("/auth/register", {
+      const response = await client.post("/auth/register", {
         email: verification.email,
         emailVerificationCode: verification.code,
         nickname: trimmedNickname,
         password,
       });
+      // AI작성: 가입 생성 응답일 때만 완료 화면을 표시한다.
+      if (response.status !== 201) {
+        setError("가입 완료 여부를 확인하지 못했습니다. 다시 시도해 주세요.");
+        return;
+      }
       // AI작성: 서버 가입 성공을 완료 화면에 전달한다.
       navigate("/signup/complete", { state: { signupCompleted: true }, replace: true });
     } catch (requestError) {
