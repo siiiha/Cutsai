@@ -37,6 +37,11 @@ public interface MemberMapper {
     @Select("SELECT EXISTS(SELECT 1 FROM member WHERE nickname = #{nickname})")
     boolean existsByNickname(@Param("nickname") String nickname);
 
+    /** AI작성: 지정한 회원의 닉네임을 변경한다. */
+    @Update("UPDATE member SET nickname = #{nickname}, updated_at = #{updatedAt} WHERE member_id = #{memberId}")
+    int updateNickname(@Param("memberId") long memberId, @Param("nickname") String nickname,
+                       @Param("updatedAt") LocalDateTime updatedAt);
+
     /** AI작성: BCrypt 비밀번호 해시를 포함한 새 회원을 저장한다. */
     @Insert("""
             INSERT INTO member (email, password_hash, nickname, created_at)
