@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { login, recoverAccount } from "../api/client.js";
+import { login, recoverAccount } from "../api/authApi.js";
 
 // AI작성: 로그인 요청을 수행하고 성공 시 원래 요청했던 보호 화면으로 이동한다.
 export default function Login() {

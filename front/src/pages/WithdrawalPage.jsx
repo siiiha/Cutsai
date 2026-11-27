@@ -1,8 +1,8 @@
 ﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import client from "../api/client.js";
+import { deleteAccount } from "../api/accountApi.js";
 import { useAuthStore } from "../stores/useAuthStore.js";
-import Settings from "./09-Settings.jsx";
+import Settings from "./SettingsPage.jsx";
 
 // AI작성: 회원 탈퇴 안내 확인과 현재 비밀번호 입력을 처리한다.
 export default function Withdrawal() {
@@ -23,7 +23,7 @@ export default function Withdrawal() {
     setSubmitting(true);
     setError("");
     try {
-      const response = await client.delete("/account", { data: { currentPassword: password } });
+      const response = await deleteAccount(password);
       if (response.status !== 204) throw new Error("탈퇴 결과를 확인하지 못했습니다.");
       useAuthStore.getState().clearAuth();
       navigate("/", { replace: true });

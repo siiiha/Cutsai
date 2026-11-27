@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import client from "../api/client.js";
+import { sendEmailVerification, verifyEmail } from "../api/authApi.js";
 
 // AI작성: 가입과 비밀번호 재설정에서 이메일 인증 입력과 상태를 공유한다.
 export default function EmailVerification({ purpose, onChange }) {
@@ -55,7 +55,7 @@ export default function EmailVerification({ purpose, onChange }) {
     setBusy(true);
     setMessage("");
     try {
-      await client.post(sent ? "/auth/email-verifications/resend" : "/auth/email-verifications", { email: email.trim(), purpose });
+      await sendEmailVerification({ email: email.trim(), purpose }, sent);
       if (requestVersion.current !== version) return;
       setSent(true);
       setVerified(false);
@@ -81,7 +81,7 @@ export default function EmailVerification({ purpose, onChange }) {
     setBusy(true);
     setMessage("");
     try {
-      await client.post("/auth/email-verifications/verify", { email: email.trim(), purpose, code });
+      await verifyEmail({ email: email.trim(), purpose, code });
       if (requestVersion.current !== version) return;
       setVerified(true);
       setMessage("이메일 인증이 완료되었습니다.");

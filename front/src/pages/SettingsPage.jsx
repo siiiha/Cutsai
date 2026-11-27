@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import client, { logout } from "../api/client.js";
+import { logout } from "../api/authApi.js";
+import { getAccount, updateNickname, updatePassword } from "../api/accountApi.js";
 import { useAuthStore } from "../stores/useAuthStore.js";
 
 // AI작성: 계정 정보를 조회하고 닉네임과 비밀번호 설정을 변경한다.
@@ -24,7 +25,7 @@ export default function Settings() {
     let active = true;
     setLoading(true);
     setError("");
-    client.get("/account").then((response) => {
+    getAccount().then((response) => {
       if (!active) return;
       setAccount(response.data.data);
       setNickname(response.data.data.nickname);
@@ -47,7 +48,7 @@ export default function Settings() {
     setError("");
     setNotice("");
     try {
-      const response = await client.patch("/account/nickname", { nickname: next });
+      const response = await updateNickname(next);
       const saved = response.data.data.nickname;
       setAccount((current) => ({ ...current, nickname: saved }));
       const auth = useAuthStore.getState();
@@ -79,7 +80,7 @@ export default function Settings() {
     setError("");
     setNotice("");
     try {
-      const response = await client.patch("/account/password", { currentPassword, newPassword });
+      const response = await updatePassword(currentPassword, newPassword);
       if (response.status !== 204) throw new Error("비밀번호 변경 결과를 확인하지 못했습니다.");
       useAuthStore.getState().clearAuth();
       navigate("/login", { replace: true });

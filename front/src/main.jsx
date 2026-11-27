@@ -2,11 +2,11 @@ import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useLocation } from "react-router-dom";
 import WorkLayout from "./components/WorkLayout.jsx";
-import NotFound from "./pages/NotFound.jsx";
+import NotFound from "./pages/NotFoundPage.jsx";
 import { screens } from "./screens.js";
-import { restoreSession } from "./api/client.js";
+import { restoreSession } from "./api/authApi.js";
 import { useAuthStore } from "./stores/useAuthStore.js";
-import "./styles.css";
+import "./styles/styles.css";
 
 const workScreenIds = new Set([
   "Dashboard",

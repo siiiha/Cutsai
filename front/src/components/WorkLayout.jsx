@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { logout } from "../api/client.js";
+import { logout } from "../api/authApi.js";
 
 const navigation = [
   { to: "/dashboard", icon: "⌂", label: "대시보드" },
