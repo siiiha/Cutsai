@@ -3,10 +3,13 @@ package com.siha.cutsai;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.siha.cutsai.auth.AuthHash;
+import com.siha.cutsai.auth.dto.RegisterRequest;
 import com.siha.cutsai.auth.mapper.EmailVerificationMapper;
 import com.siha.cutsai.auth.mapper.LoginRateLimitMapper;
 import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
+import com.siha.cutsai.auth.service.AuthService;
 import com.siha.cutsai.member.mapper.MemberMapper;
+import com.siha.cutsai.member.service.AccountService;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +38,9 @@ class MapperMySqlIntegrationTest {
     @Autowired private EmailVerificationMapper verifications;
     @Autowired private LoginRateLimitMapper limits;
     @Autowired private RefreshTokenMapper tokens;
+    @Autowired private AccountService accounts;
+    @Autowired private AuthService authService;
+    @Autowired private PasswordEncoder encoder;
 
     /** AI작성: 테스트 실행 중에만 사용할 임시 토큰 서명 키를 만든다. */
     @DynamicPropertySource
@@ -111,5 +118,38 @@ class MapperMySqlIntegrationTest {
         assertEquals(1, members.deleteEpisodeSchedules(memberId));
         assertEquals(1, members.deleteMember(memberId));
         assertFalse(members.existsByEmail(email));
+    }
+
+    /** AI작성: 실제 탈퇴 후 관련 기록이 정리되고 같은 이메일로 다시 가입할 수 있는지 확인한다. */
+    @Test
+    void withdrawalRemovesRelatedDataAndAllowsSameEmailSignup() {
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        String email = "withdrawal-test-" + suffix + "@example.invalid";
+        String nickname = "w" + suffix;
+        String currentPassword = "oldpass1!";
+        String newPassword = "newpass1!";
+        String code = "123456";
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+
+        assertEquals(1, members.insert(email, encoder.encode(currentPassword), nickname, now));
+        long memberId = members.findCredentialsByEmail(email).orElseThrow().memberId();
+        assertEquals(1, jdbc.update("INSERT INTO episode_schedule (member_id, episode_label, stage, due_date) VALUES (?, ?, ?, ?)",
+                memberId, "테스트 회차", "콘티", LocalDate.of(2030, 1, 1)));
+        assertEquals(1, tokens.insert(memberId, AuthHash.sha256("withdraw-token-" + suffix), now.plusDays(1), now));
+        verifications.insertIfAbsent(email, "SIGNUP", encoder.encode(code), now.plusMinutes(5), now);
+        verifications.insertIfAbsent(email, "PASSWORD_RESET", encoder.encode(code), now.plusMinutes(5), now);
+
+        accounts.withdraw(memberId, currentPassword);
+
+        assertFalse(members.existsByEmail(email));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM episode_schedule WHERE member_id = ?", Integer.class, memberId));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM refresh_token WHERE member_id = ?", Integer.class, memberId));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM email_verification WHERE email = ?", Integer.class, email));
+
+        verifications.insertIfAbsent(email, "SIGNUP", encoder.encode(code), now.plusMinutes(5), now);
+        assertEquals(1, verifications.markVerified(email, "SIGNUP", now));
+        var response = authService.register(new RegisterRequest(email, newPassword, nickname, code));
+        assertEquals(email, response.member().email());
+        assertTrue(members.existsByEmail(email));
     }
 }
