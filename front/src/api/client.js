@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from "../stores/useAuthStore.js";
 
-const AUTH_ENDPOINTS = Object.freeze({ login: "/auth/login", refresh: "/auth/refresh", logout: "/auth/logout" });
+const AUTH_ENDPOINTS = Object.freeze({ login: "/auth/login", refresh: "/auth/refresh", logout: "/auth/logout", accountRecovery: "/auth/account-recoveries" });
 const REFRESH_OPTIONS = { headers: { "X-Refresh-Transport": "cookie" } };
 const client = axios.create({ baseURL: "/api", timeout: 10000, withCredentials: true });
 let refreshInFlight = null;
@@ -15,6 +15,14 @@ async function loadMember() { return tokenData(await client.get("/members/me"));
 // AI작성: 로그인 성공 후 토큰과 내 정보를 Zustand store에 저장한다.
 export async function login(email, password) {
   const tokens = tokenData(await client.post(AUTH_ENDPOINTS.login, { email, password }, REFRESH_OPTIONS));
+  useAuthStore.getState().setAuth({ accessToken: tokens.accessToken });
+  useAuthStore.getState().setAuth({ accessToken: tokens.accessToken, member: await loadMember() });
+  return tokens;
+}
+
+// AI작성: 탈퇴 유예 계정을 복구한 뒤 새 인증 토큰과 회원 정보를 저장한다.
+export async function recoverAccount(email, password) {
+  const tokens = tokenData(await client.post(AUTH_ENDPOINTS.accountRecovery, { email, password }, REFRESH_OPTIONS));
   useAuthStore.getState().setAuth({ accessToken: tokens.accessToken });
   useAuthStore.getState().setAuth({ accessToken: tokens.accessToken, member: await loadMember() });
   return tokens;
@@ -47,13 +55,13 @@ export async function logout() {
 
 client.interceptors.request.use((config) => {
   const accessToken = useAuthStore.getState().accessToken;
-  if (accessToken && ![AUTH_ENDPOINTS.login, AUTH_ENDPOINTS.refresh].includes(config.url)) config.headers.Authorization = `Bearer ${accessToken}`;
+  if (accessToken && ![AUTH_ENDPOINTS.login, AUTH_ENDPOINTS.refresh, AUTH_ENDPOINTS.accountRecovery].includes(config.url)) config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
 
 client.interceptors.response.use(undefined, async (error) => {
   const request = error.config;
-  const isTokenRequest = [AUTH_ENDPOINTS.login, AUTH_ENDPOINTS.refresh].includes(request?.url);
+  const isTokenRequest = [AUTH_ENDPOINTS.login, AUTH_ENDPOINTS.refresh, AUTH_ENDPOINTS.accountRecovery].includes(request?.url);
   const code = error.response?.data?.error?.code;
   if (code !== "TOKEN_EXPIRED" || !request || request._retried || isTokenRequest) return Promise.reject(error);
   request._retried = true;
