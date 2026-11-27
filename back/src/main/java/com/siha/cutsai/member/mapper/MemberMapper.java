@@ -58,6 +58,9 @@ public interface MemberMapper {
     /** AI작성: 탈퇴하지 않은 회원인지 확인한다. */
     boolean isActive(@Param("memberId") long memberId);
 
+    /** AI작성: 토큰 검증에 필요한 활성 상태와 버전을 조회한다. */
+    Optional<TokenState> findTokenState(@Param("memberId") long memberId);
+
     /** AI작성: 탈퇴하는 회원이 소유한 회차 일정을 삭제한다. */
     int deleteEpisodeSchedules(@Param("memberId") long memberId);
 
@@ -72,6 +75,9 @@ public interface MemberMapper {
 
     /** AI작성: 탈퇴 유예와 정리에 필요한 회원 상태다. */
     record WithdrawalState(long memberId, String email, LocalDateTime withdrawnAt) {}
+
+    /** AI작성: 액세스 토큰과 비교할 회원 상태다. */
+    record TokenState(boolean active, long tokenVersion) {}
 
     /** AI작성: 내 정보 응답 생성에 사용하는 회원 행이다. */
     record MemberRow(long memberId, String email, String nickname, LocalDateTime createdAt) {}

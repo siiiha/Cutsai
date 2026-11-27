@@ -71,9 +71,9 @@
         SELECT member_id, email, withdrawn_at FROM member WHERE member_id = #{memberId} FOR UPDATE
     </select>
 
-    <!-- AI작성: 활성 계정에 탈퇴 요청 시각을 기록한다. -->
+    <!-- AI작성: 탈퇴 요청 시 기존 액세스 토큰을 복구 후에도 거부하도록 버전을 올린다. -->
     <update id="markWithdrawn">
-        UPDATE member SET withdrawn_at = #{withdrawnAt}, updated_at = #{withdrawnAt}
+        UPDATE member SET withdrawn_at = #{withdrawnAt}, token_version = token_version + 1, updated_at = #{withdrawnAt}
         WHERE member_id = #{memberId} AND withdrawn_at IS NULL
     </update>
 
@@ -93,6 +93,11 @@
     <!-- AI작성: 탈퇴하지 않은 회원만 활성 상태로 판단한다. -->
     <select id="isActive" resultType="boolean">
         SELECT EXISTS(SELECT 1 FROM member WHERE member_id = #{memberId} AND withdrawn_at IS NULL)
+    </select>
+
+    <!-- AI작성: 회원의 활성 상태와 토큰 버전을 함께 조회한다. -->
+    <select id="findTokenState" resultType="com.siha.cutsai.member.mapper.MemberMapper$TokenState">
+        SELECT (withdrawn_at IS NULL) AS active, token_version FROM member WHERE member_id = #{memberId}
     </select>
 
     <!-- AI작성: 탈퇴 회원의 회차 일정을 삭제한다. -->
