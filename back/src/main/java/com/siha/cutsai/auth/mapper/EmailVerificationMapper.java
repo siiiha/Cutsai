@@ -2,6 +2,7 @@ package com.siha.cutsai.auth.mapper;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -11,6 +12,10 @@ import org.apache.ibatis.annotations.Update;
 /** AI작성: 이메일과 인증 목적별 코드 및 발송 제한 상태를 관리한다. */
 @Mapper
 public interface EmailVerificationMapper {
+    /** AI작성: 회원 탈퇴 시 해당 이메일의 모든 인증 목적 기록을 삭제한다. */
+    @Delete("DELETE FROM email_verification WHERE email = #{email}")
+    int deleteByEmail(@Param("email") String email);
+
     /** AI작성: 최초 인증 행을 생성하고 기존 행은 변경하지 않는다. */
     @Insert("""
             INSERT INTO email_verification
