@@ -35,7 +35,7 @@ class EmailVerificationServiceImplTest {
     void setUp() {
         mapper = mock(EmailVerificationMapper.class);
         members = mock(MemberMapper.class);
-        ObjectProvider<EmailVerificationServiceImpl.MailSender> provider = mock(ObjectProvider.class);
+        ObjectProvider<EmailVerificationSender> provider = mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn((email, purpose, code) -> delivered.put(purpose, code));
         when(mapper.findForUpdate(anyString(), anyString())).thenAnswer(call ->
                 Optional.ofNullable(states.get(key(call.getArgument(0), call.getArgument(1)))));

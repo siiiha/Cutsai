@@ -21,10 +21,10 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     private final EmailVerificationMapper mapper;
     private final MemberMapper memberMapper;
     private final PasswordEncoder encoder;
-    private final ObjectProvider<MailSender> mailSender;
+    private final ObjectProvider<EmailVerificationSender> mailSender;
 
     public EmailVerificationServiceImpl(EmailVerificationMapper mapper, MemberMapper memberMapper,
-                                        PasswordEncoder encoder, ObjectProvider<MailSender> mailSender) {
+                                        PasswordEncoder encoder, ObjectProvider<EmailVerificationSender> mailSender) {
         this.mapper = mapper;
         this.memberMapper = memberMapper;
         this.encoder = encoder;
@@ -81,7 +81,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     /** AI작성: 행 잠금으로 동시 발송을 직렬화하고 코드 수명과 발송 제한을 따로 관리한다. */
     private void issue(String email, Purpose purpose) {
         String normalized = normalize(email, purpose);
-        MailSender sender = mailSender.getIfAvailable();
+        EmailVerificationSender sender = mailSender.getIfAvailable();
         if (sender == null) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "AUTH-MAIL-UNAVAILABLE", "메일 발송을 사용할 수 없습니다.");
         }
@@ -134,9 +134,4 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         return new ApiException(HttpStatus.BAD_REQUEST, "AUTH-005", "인증 코드가 일치하지 않거나 만료되었습니다.");
     }
 
-    /** AI작성: 다음 단계에서 실제 메일 발송기가 구현할 연결 계약이다. */
-    public interface MailSender {
-        /** AI작성: 인증 코드를 지정한 이메일로 발송한다. */
-        void send(String email, Purpose purpose, String code);
-    }
 }

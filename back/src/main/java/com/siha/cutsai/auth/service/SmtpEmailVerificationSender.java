@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 /** AI작성: SMTP를 통해 이메일 인증 코드를 발송한다. */
 @Component
 @ConditionalOnProperty(name = "spring.mail.host")
-public class SmtpEmailVerificationSender implements EmailVerificationServiceImpl.MailSender {
+public class SmtpEmailVerificationSender implements EmailVerificationSender {
     private final JavaMailSender mailSender;
     private final String from;
 
