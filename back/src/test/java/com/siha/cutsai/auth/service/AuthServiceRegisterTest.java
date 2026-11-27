@@ -35,7 +35,7 @@ class AuthServiceRegisterTest {
         refreshTokens = mock(RefreshTokenMapper.class);
         PasswordEncoder encoder = mock(PasswordEncoder.class);
         when(encoder.encode(anyString())).thenReturn("encoded-password");
-        service = new AuthService(mock(LoginService.class), jwtProvider, refreshTokens,
+        service = new AuthServiceImpl(mock(LoginService.class), jwtProvider, refreshTokens,
                 members, encoder, verification);
     }
 

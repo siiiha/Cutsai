@@ -102,7 +102,7 @@ class PasswordResetServiceImplTest {
             return 1;
         });
         service = new PasswordResetServiceImpl(verification, members, tokens, realEncoder);
-        LoginService loginService = new LoginService(limits, members, realEncoder);
+        LoginService loginService = new LoginServiceImpl(limits, members, realEncoder);
 
         service.resetPassword("writer@example.com", "123456", "newpass1!");
 
@@ -130,7 +130,7 @@ class PasswordResetServiceImplTest {
                 Optional.of(new RefreshTokenMapper.RefreshTokenSession(expiresAt, revokedAt.get())));
         JwtProvider jwtProvider = mock(JwtProvider.class);
         when(jwtProvider.readRefreshMember("old-refresh-token")).thenReturn(1L);
-        AuthService authService = new AuthService(mock(LoginService.class), jwtProvider, tokens,
+        AuthService authService = new AuthServiceImpl(mock(LoginService.class), jwtProvider, tokens,
                 members, encoder, verification);
 
         service.resetPassword("writer@example.com", "123456", "newpass1!");
