@@ -231,4 +231,36 @@ class MapperMySqlIntegrationTest {
                 .toList();
         assertEquals(List.of("episode_schedule:[CASCADE]", "refresh_token:[CASCADE]"), actualRules);
     }
+
+    /** AI작성: 탈퇴 시 버전이 증가하고 유예기간 경계에 맞게 복구되는지 확인한다. */
+    @Test
+    void withdrawalGraceAndTokenVersionAreStoredInMySql() {
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        String email = "grace-test-" + suffix + "@example.invalid";
+        String nickname = "g" + suffix;
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+        LocalDateTime withdrawnAt = now.minusDays(10);
+
+        assertEquals(1, members.insert(email, "test-password-hash", nickname, now));
+        long memberId = members.findCredentialsByEmail(email).orElseThrow().memberId();
+        assertTrue(members.isActive(memberId));
+        assertEquals(0L, members.findTokenState(memberId).orElseThrow().tokenVersion());
+
+        assertEquals(1, members.markWithdrawn(memberId, withdrawnAt));
+        assertEquals(0, members.markWithdrawn(memberId, now));
+        assertFalse(members.isActive(memberId));
+        assertEquals(1L, members.findTokenState(memberId).orElseThrow().tokenVersion());
+        assertEquals(withdrawnAt, members.findWithdrawalForUpdate(memberId).orElseThrow().withdrawnAt());
+
+        // AI작성: 기준 시각과 탈퇴 시각이 같으면 30일이 만료된 것으로 처리한다.
+        assertEquals(0, members.restoreWithinGrace(memberId, withdrawnAt));
+        assertTrue(members.findExpiredWithdrawalsForUpdate(withdrawnAt, 10000).stream()
+                .anyMatch(member -> member.memberId() == memberId));
+        assertEquals(1, members.restoreWithinGrace(memberId, withdrawnAt.minusSeconds(1)));
+        assertTrue(members.isActive(memberId));
+        assertEquals(1L, members.findTokenState(memberId).orElseThrow().tokenVersion());
+
+        assertEquals(1, members.markWithdrawn(memberId, now));
+        assertEquals(2L, members.findTokenState(memberId).orElseThrow().tokenVersion());
+    }
 }
