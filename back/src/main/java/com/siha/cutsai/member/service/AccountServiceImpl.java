@@ -67,16 +67,16 @@ public class AccountServiceImpl implements AccountService {
         tokens.revokeAllForMember(memberId, changedAt);
     }
 
-    /** AI작성: 비밀번호 확인 후 인증 기록·회차·토큰·회원을 한 트랜잭션에서 삭제한다. */
+    /** AI작성: 비밀번호 확인 후 회원을 탈퇴 유예 상태로 바꾸고 기존 refresh 토큰을 폐기한다. */
     @Override
     @Transactional
     public void withdraw(long memberId, String currentPassword) {
         AccountCredentials member = lockMember(memberId);
         requireCurrentPassword(currentPassword, member.passwordHash());
-        verifications.deleteByEmail(member.email());
-        members.deleteEpisodeSchedules(memberId);
-        tokens.deleteByMemberId(memberId);
-        if (members.deleteMember(memberId) != 1) throw memberNotFound();
+        LocalDateTime withdrawnAt = now();
+        if (members.markWithdrawn(memberId, withdrawnAt) != 1) throw memberNotFound();
+        // AI작성: 복구 기간에는 원고 일정과 이메일 인증 기록을 보존하고, 기존 세션만 즉시 폐기한다.
+        tokens.revokeAllForMember(memberId, withdrawnAt);
     }
 
     /** AI작성: 계정 변경이 겹치지 않도록 현재 회원을 잠금 조회한다. */
