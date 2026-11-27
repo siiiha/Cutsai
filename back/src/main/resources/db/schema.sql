@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS member (
                                       email VARCHAR(254) NOT NULL,
     nickname VARCHAR(50) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    -- AI작성: 탈퇴 요청 시각을 UTC로 보관하며 NULL은 활성 계정이다.
+    withdrawn_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     ON UPDATE CURRENT_TIMESTAMP,
