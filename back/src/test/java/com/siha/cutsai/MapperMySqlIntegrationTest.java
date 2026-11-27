@@ -8,6 +8,7 @@ import com.siha.cutsai.auth.mapper.EmailVerificationMapper;
 import com.siha.cutsai.auth.mapper.LoginRateLimitMapper;
 import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
 import com.siha.cutsai.auth.service.AuthService;
+import com.siha.cutsai.common.exception.ApiException;
 import com.siha.cutsai.member.mapper.MemberMapper;
 import com.siha.cutsai.member.service.AccountService;
 import java.security.SecureRandom;
@@ -151,5 +152,32 @@ class MapperMySqlIntegrationTest {
         var response = authService.register(new RegisterRequest(email, newPassword, nickname, code));
         assertEquals(email, response.member().email());
         assertTrue(members.existsByEmail(email));
+    }
+
+    /** AI작성: 잘못된 현재 비밀번호로는 비밀번호 변경과 탈퇴가 처리되지 않는다. */
+    @Test
+    void wrongCurrentPasswordPreservesAccountAndRelatedData() {
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        String email = "wrong-password-test-" + suffix + "@example.invalid";
+        String nickname = "p" + suffix;
+        String currentPassword = "oldpass1!";
+        String tokenHash = AuthHash.sha256("wrong-password-token-" + suffix);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+
+        assertEquals(1, members.insert(email, encoder.encode(currentPassword), nickname, now));
+        long memberId = members.findCredentialsByEmail(email).orElseThrow().memberId();
+        assertEquals(1, jdbc.update("INSERT INTO episode_schedule (member_id, episode_label, stage, due_date) VALUES (?, ?, ?, ?)",
+                memberId, "테스트 회차", "콘티", LocalDate.of(2030, 1, 1)));
+        assertEquals(1, tokens.insert(memberId, tokenHash, now.plusDays(1), now));
+        verifications.insertIfAbsent(email, "SIGNUP", encoder.encode("123456"), now.plusMinutes(5), now);
+
+        assertThrows(ApiException.class, () -> accounts.changePassword(memberId, "wrongpass1!", "newpass1!"));
+        assertThrows(ApiException.class, () -> accounts.withdraw(memberId, "wrongpass1!"));
+
+        assertTrue(members.existsByEmail(email));
+        assertTrue(encoder.matches(currentPassword, members.findCredentialsByEmail(email).orElseThrow().passwordHash()));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM episode_schedule WHERE member_id = ?", Integer.class, memberId));
+        assertNull(tokens.findForUpdate(memberId, tokenHash).orElseThrow().revokedAt());
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM email_verification WHERE email = ?", Integer.class, email));
     }
 }
