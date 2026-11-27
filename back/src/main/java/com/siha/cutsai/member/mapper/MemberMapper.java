@@ -62,8 +62,17 @@ public interface MemberMapper {
             """)
     Optional<MemberRow> findById(@Param("memberId") long memberId);
 
+    /** AI작성: 계정 변경 중 회원 정보가 동시에 변경되지 않도록 해당 행을 잠근다. */
+    @Select("""
+            SELECT email, nickname, password_hash FROM member WHERE member_id = #{memberId} FOR UPDATE
+            """)
+    Optional<AccountCredentials> findAccountForUpdate(@Param("memberId") long memberId);
+
     /** AI작성: 로그인 검증 전용 회원 정보다. */
     record MemberCredentials(long memberId, String passwordHash) {}
+
+    /** AI작성: 계정 변경 시 필요한 회원 정보와 비밀번호 해시다. */
+    record AccountCredentials(String email, String nickname, String passwordHash) {}
 
     /** AI작성: 내 정보 응답 생성에 사용하는 회원 행이다. */
     record MemberRow(long memberId, String email, String nickname, LocalDateTime createdAt) {}
