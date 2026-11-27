@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,6 +78,21 @@ public class AccountServiceImpl implements AccountService {
         if (members.markWithdrawn(memberId, withdrawnAt) != 1) throw memberNotFound();
         // AI작성: 복구 기간에는 원고 일정과 이메일 인증 기록을 보존하고, 기존 세션만 즉시 폐기한다.
         tokens.revokeAllForMember(memberId, withdrawnAt);
+    }
+
+    /** AI작성: 15분마다 30일 유예가 끝난 탈퇴 계정을 최대 100개씩 관련 데이터와 함께 삭제한다. */
+    @Scheduled(cron = "0 */15 * * * *", zone = "UTC")
+    @Transactional
+    public void purgeExpiredWithdrawals() {
+        LocalDateTime cutoff = now().minusDays(30);
+        for (MemberMapper.WithdrawalState withdrawal : members.findExpiredWithdrawalsForUpdate(cutoff, 100)) {
+            verifications.deleteByEmail(withdrawal.email());
+            members.deleteEpisodeSchedules(withdrawal.memberId());
+            tokens.deleteByMemberId(withdrawal.memberId());
+            if (members.deleteMember(withdrawal.memberId()) != 1) {
+                throw new IllegalStateException("만료된 탈퇴 계정을 정리하지 못했습니다.");
+            }
+        }
     }
 
     /** AI작성: 계정 변경이 겹치지 않도록 현재 회원을 잠금 조회한다. */
