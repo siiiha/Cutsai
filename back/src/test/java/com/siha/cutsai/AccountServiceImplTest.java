@@ -45,6 +45,18 @@ class AccountServiceImplTest {
         verify(members, never()).updateNickname(anyLong(), anyString(), any());
     }
 
+    /** AI작성: 앞뒤 공백을 제거한 닉네임을 저장하고 저장된 값을 반환한다. */
+    @Test
+    void changesNicknameAndReturnsSavedValue() {
+        when(members.updateNickname(eq(1L), eq("새작가"), any())).thenReturn(1);
+
+        String result = service.changeNickname(1L, "  새작가  ");
+
+        assertEquals("새작가", result);
+        verify(members).existsByNickname("새작가");
+        verify(members).updateNickname(eq(1L), eq("새작가"), any());
+    }
+
     /** AI작성: 현재 비밀번호가 틀리면 새 비밀번호를 저장하거나 토큰을 폐기하지 않는다. */
     @Test
     void rejectsPasswordChangeWithWrongCurrentPassword() {
