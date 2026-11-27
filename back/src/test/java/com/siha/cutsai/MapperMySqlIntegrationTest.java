@@ -8,6 +8,7 @@ import com.siha.cutsai.auth.mapper.EmailVerificationMapper;
 import com.siha.cutsai.auth.mapper.LoginRateLimitMapper;
 import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
 import com.siha.cutsai.auth.service.AuthService;
+import com.siha.cutsai.auth.service.LoginService;
 import com.siha.cutsai.common.exception.ApiException;
 import com.siha.cutsai.member.mapper.MemberMapper;
 import com.siha.cutsai.member.service.AccountService;
@@ -41,6 +42,7 @@ class MapperMySqlIntegrationTest {
     @Autowired private RefreshTokenMapper tokens;
     @Autowired private AccountService accounts;
     @Autowired private AuthService authService;
+    @Autowired private LoginService loginService;
     @Autowired private PasswordEncoder encoder;
 
     /** AI작성: 테스트 실행 중에만 사용할 임시 토큰 서명 키를 만든다. */
@@ -179,5 +181,32 @@ class MapperMySqlIntegrationTest {
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM episode_schedule WHERE member_id = ?", Integer.class, memberId));
         assertNull(tokens.findForUpdate(memberId, tokenHash).orElseThrow().revokedAt());
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM email_verification WHERE email = ?", Integer.class, email));
+    }
+
+    /** AI작성: 계정 변경 후 새 닉네임·비밀번호와 기존 토큰 폐기 상태를 실제 DB에서 확인한다. */
+    @Test
+    void accountChangesPersistAndRevokeOldRefreshToken() {
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        String email = "account-change-test-" + suffix + "@example.invalid";
+        String oldNickname = "a" + suffix;
+        String newNickname = "b" + suffix;
+        String oldPassword = "oldpass1!";
+        String newPassword = "newpass1!";
+        String tokenHash = AuthHash.sha256("account-change-token-" + suffix);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+
+        assertEquals(1, members.insert(email, encoder.encode(oldPassword), oldNickname, now));
+        long memberId = members.findCredentialsByEmail(email).orElseThrow().memberId();
+        assertEquals(1, tokens.insert(memberId, tokenHash, now.plusDays(1), now));
+
+        assertEquals(newNickname, accounts.changeNickname(memberId, "  " + newNickname + "  "));
+        assertEquals(newNickname, members.findById(memberId).orElseThrow().nickname());
+        accounts.changePassword(memberId, oldPassword, newPassword);
+
+        assertNotNull(tokens.findForUpdate(memberId, tokenHash).orElseThrow().revokedAt());
+        ApiException error = assertThrows(ApiException.class,
+                () -> loginService.authenticate(email, oldPassword, "127.0.0.1"));
+        assertEquals("AUTH-LOGIN-INVALID", error.getCode());
+        assertEquals(memberId, loginService.authenticate(email, newPassword, "127.0.0.1"));
     }
 }
