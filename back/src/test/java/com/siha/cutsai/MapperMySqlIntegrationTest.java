@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -208,5 +209,26 @@ class MapperMySqlIntegrationTest {
                 () -> loginService.authenticate(email, oldPassword, "127.0.0.1"));
         assertEquals("AUTH-LOGIN-INVALID", error.getCode());
         assertEquals(memberId, loginService.authenticate(email, newPassword, "127.0.0.1"));
+    }
+
+    /** AI작성: 회원 관련 외래 키가 ERD의 연쇄 삭제 규칙을 따르는지 확인한다. */
+    @Test
+    void memberForeignKeysUseCascadeDeletion() {
+        String sql = """
+                SELECT rc.DELETE_RULE
+                FROM information_schema.REFERENTIAL_CONSTRAINTS rc
+                JOIN information_schema.KEY_COLUMN_USAGE kcu
+                  ON rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+                 AND rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+                 AND rc.TABLE_NAME = kcu.TABLE_NAME
+                WHERE rc.CONSTRAINT_SCHEMA = DATABASE()
+                  AND kcu.TABLE_NAME = ? AND kcu.COLUMN_NAME = 'member_id'
+                  AND kcu.REFERENCED_TABLE_NAME = 'member'
+                """;
+        // AI작성: 한 테이블이 불일치해도 두 외래 키의 현재 상태를 함께 확인한다.
+        List<String> actualRules = List.of("episode_schedule", "refresh_token").stream()
+                .map(table -> table + ":" + jdbc.queryForList(sql, String.class, table))
+                .toList();
+        assertEquals(List.of("episode_schedule:[CASCADE]", "refresh_token:[CASCADE]"), actualRules);
     }
 }

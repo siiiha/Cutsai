@@ -5,11 +5,11 @@
 -- AI작성: 회원 삭제 시 소유한 회차 일정이 함께 삭제되도록 변경한다.
 ALTER TABLE episode_schedule
     DROP FOREIGN KEY fk_episode_schedule_member,
-    ADD CONSTRAINT fk_episode_schedule_member
+    ADD CONSTRAINT fk_episode_schedule_member_cascade
         FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE;
 
 -- AI작성: 회원 삭제 시 해당 리프레시 토큰 기록이 함께 삭제되도록 변경한다.
 ALTER TABLE refresh_token
     DROP FOREIGN KEY fk_refresh_token_member,
-    ADD CONSTRAINT fk_refresh_token_member
+    ADD CONSTRAINT fk_refresh_token_member_cascade
         FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE;
