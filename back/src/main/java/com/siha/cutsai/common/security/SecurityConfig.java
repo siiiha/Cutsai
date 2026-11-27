@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh",
-                                "/api/auth/register", "/api/auth/email-verifications",
+                                "/api/auth/register", "/api/auth/account-recoveries", "/api/auth/email-verifications",
                                 "/api/auth/email-verifications/verify", "/api/auth/email-verifications/resend",
                                 "/api/auth/password-resets", "/api/dialogues/check", "/api/dialogues/split").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/onomatopoeias", "/api/sound-effects").permitAll()
