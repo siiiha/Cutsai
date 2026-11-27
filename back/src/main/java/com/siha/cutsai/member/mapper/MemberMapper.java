@@ -2,6 +2,7 @@ package com.siha.cutsai.member.mapper;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -67,6 +68,14 @@ public interface MemberMapper {
             SELECT email, nickname, password_hash FROM member WHERE member_id = #{memberId} FOR UPDATE
             """)
     Optional<AccountCredentials> findAccountForUpdate(@Param("memberId") long memberId);
+
+    /** AI작성: 탈퇴하는 회원이 소유한 회차 일정을 삭제한다. */
+    @Delete("DELETE FROM episode_schedule WHERE member_id = #{memberId}")
+    int deleteEpisodeSchedules(@Param("memberId") long memberId);
+
+    /** AI작성: 관련 데이터 정리 후 지정한 회원을 삭제한다. */
+    @Delete("DELETE FROM member WHERE member_id = #{memberId}")
+    int deleteMember(@Param("memberId") long memberId);
 
     /** AI작성: 로그인 검증 전용 회원 정보다. */
     record MemberCredentials(long memberId, String passwordHash) {}
