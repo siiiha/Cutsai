@@ -127,7 +127,10 @@ public class AuthService {
 
     /** AI작성: 액세스 JWT와 DB에는 해시만 남기는 refresh 토큰을 함께 발급한다. */
     private Tokens issueTokens(long memberId, Instant now, Instant refreshExpiresAt) {
-        String accessToken = jwtProvider.createAccessToken(memberId, now);
+        // AI작성: 비활성 계정에는 토큰을 발급하지 않고 현재 회원 버전을 액세스 토큰에 담는다.
+        MemberMapper.TokenState state = memberMapper.findTokenState(memberId).orElseThrow(JwtProvider::invalidRefresh);
+        if (!state.active()) throw JwtProvider.invalidRefresh();
+        String accessToken = jwtProvider.createAccessToken(memberId, now, state.tokenVersion());
         String refreshToken = jwtProvider.createRefreshToken(memberId, now, refreshExpiresAt);
         refreshTokenMapper.insert(memberId, AuthHash.sha256(refreshToken),
                 LocalDateTime.ofInstant(refreshExpiresAt, ZoneOffset.UTC), LocalDateTime.ofInstant(now, ZoneOffset.UTC));

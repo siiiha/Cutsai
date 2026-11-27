@@ -45,7 +45,8 @@ class AuthServiceRegisterTest {
         // AI작성: 가입한 회원을 조회하고 발급 토큰을 반환하는 흐름을 준비한다.
         when(members.findCredentialsByEmail("writer@example.com"))
                 .thenReturn(Optional.of(new MemberMapper.MemberCredentials(1L, "encoded-password")));
-        when(jwtProvider.createAccessToken(eq(1L), any())).thenReturn("access-token");
+        when(members.findTokenState(1L)).thenReturn(Optional.of(new MemberMapper.TokenState(true, 0L)));
+        when(jwtProvider.createAccessToken(eq(1L), any(), eq(0L))).thenReturn("access-token");
         when(jwtProvider.createRefreshToken(eq(1L), any(), any())).thenReturn("refresh-token");
         var response = service.register(new RegisterRequest("Writer@Example.com", "password123", "작가", "123456"));
 

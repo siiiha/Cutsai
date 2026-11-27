@@ -33,9 +33,11 @@ final class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authorization != null && authorization.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
             try {
-                long memberId = jwtProvider.readAccessMember(authorization.substring(BEARER_PREFIX.length()));
-                // AI작성: 탈퇴 요청 중이거나 삭제된 회원의 토큰으로 보호 API에 접근하지 못하게 한다.
-                if (!memberMapper.isActive(memberId)) {
+                JwtProvider.AccessClaims claims = jwtProvider.readAccessClaims(authorization.substring(BEARER_PREFIX.length()));
+                long memberId = claims.memberId();
+                // AI작성: 비활성 회원과 탈퇴 전 버전의 토큰은 복구 후에도 보호 API에서 거부한다.
+                MemberMapper.TokenState state = memberMapper.findTokenState(memberId).orElse(null);
+                if (state == null || !state.active() || state.tokenVersion() != claims.tokenVersion()) {
                     throw new ApiException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED", "로그인이 필요합니다.");
                 }
                 var context = SecurityContextHolder.createEmptyContext();
