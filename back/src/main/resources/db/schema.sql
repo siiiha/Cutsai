@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS episode_schedule (
     PRIMARY KEY (episode_id),
     KEY idx_episode_schedule_member_id (member_id),
     CONSTRAINT fk_episode_schedule_member
-    FOREIGN KEY (member_id) REFERENCES member (member_id)
+    /* AI작성: 회원 탈퇴 시 소유한 회차 일정도 함께 삭제한다. */
+    FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS email_verification (
@@ -62,5 +63,6 @@ CREATE TABLE IF NOT EXISTS refresh_token (
     UNIQUE KEY uk_refresh_token_hash (token_hash),
     KEY idx_refresh_token_member_id (member_id),
     CONSTRAINT fk_refresh_token_member
-    FOREIGN KEY (member_id) REFERENCES member (member_id)
+    /* AI작성: 회원 탈퇴 시 해당 회원의 리프레시 토큰도 함께 삭제한다. */
+    FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
