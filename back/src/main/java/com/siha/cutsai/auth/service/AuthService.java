@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 /** AI작성: 로그인·회원가입·refresh 토큰 회전을 처리한다. */
 @Service
@@ -45,8 +46,39 @@ public class AuthService {
     @Transactional(noRollbackFor = ApiException.class)
     public Tokens login(String email, String password, String remoteAddress) {
         long memberId = loginService.authenticate(email, password, remoteAddress);
+        // AI작성: 비밀번호가 맞아도 탈퇴 유예 계정은 복구 확인 전까지 토큰을 발급하지 않는다.
+        MemberMapper.WithdrawalState withdrawal = memberMapper.findWithdrawalForUpdate(memberId)
+                .orElseThrow(JwtProvider::invalidRefresh);
+        if (withdrawal.withdrawnAt() != null) {
+            if (withdrawal.withdrawnAt().isAfter(LocalDateTime.now(ZoneOffset.UTC).minusDays(30))) {
+                throw new ApiException(HttpStatus.CONFLICT, "AUTH-ACCOUNT-RECOVERY-AVAILABLE",
+                        "탈퇴 유예 중인 계정입니다. 계정 복구를 확인해 주세요.");
+            }
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "AUTH-LOGIN-INVALID", "이메일 또는 비밀번호를 확인해 주세요.");
+        }
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         return issueTokens(memberId, now, now.plus(JwtProvider.REFRESH_VALIDITY));
+    }
+
+    /** AI작성: 비밀번호를 다시 확인하고 30일 유예가 남은 계정을 복구한 뒤 새 토큰을 발급한다. */
+    @Transactional(noRollbackFor = ApiException.class)
+    public Tokens recoverAccount(String email, String password, String remoteAddress) {
+        long memberId = loginService.authenticate(email, password, remoteAddress);
+        MemberMapper.WithdrawalState withdrawal = memberMapper.findWithdrawalForUpdate(memberId)
+                .orElseThrow(JwtProvider::invalidRefresh);
+        LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minusDays(30);
+        if (withdrawal.withdrawnAt() == null || !withdrawal.withdrawnAt().isAfter(cutoff)
+                || memberMapper.restoreWithinGrace(memberId, cutoff) != 1) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "AUTH-LOGIN-INVALID", "이메일 또는 비밀번호를 확인해 주세요.");
+        }
+        try {
+            Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+            return issueTokens(memberId, now, now.plus(JwtProvider.REFRESH_VALIDITY));
+        } catch (ApiException e) {
+            // AI작성: 복구 후 토큰 발급에서 오류가 나면 계정 복구도 함께 되돌린다.
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            throw e;
+        }
     }
 
     /** AI작성: 이메일·닉네임 중복을 검사하고 BCrypt 비밀번호 해시로 회원을 가입시킨다. */
