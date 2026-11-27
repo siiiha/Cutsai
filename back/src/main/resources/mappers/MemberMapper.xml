@@ -66,6 +66,35 @@
         FOR UPDATE
     </select>
 
+    <!-- AI작성: 탈퇴 또는 복구할 회원의 현재 상태를 잠금 조회한다. -->
+    <select id="findWithdrawalForUpdate" resultType="com.siha.cutsai.member.mapper.MemberMapper$WithdrawalState">
+        SELECT member_id, email, withdrawn_at FROM member WHERE member_id = #{memberId} FOR UPDATE
+    </select>
+
+    <!-- AI작성: 활성 계정에 탈퇴 요청 시각을 기록한다. -->
+    <update id="markWithdrawn">
+        UPDATE member SET withdrawn_at = #{withdrawnAt}, updated_at = #{withdrawnAt}
+        WHERE member_id = #{memberId} AND withdrawn_at IS NULL
+    </update>
+
+    <!-- AI작성: 탈퇴 후 30일 기준 시각이 지나지 않은 계정만 복구한다. -->
+    <update id="restoreWithinGrace">
+        UPDATE member SET withdrawn_at = NULL, updated_at = UTC_TIMESTAMP()
+        WHERE member_id = #{memberId} AND withdrawn_at IS NOT NULL AND withdrawn_at &gt; #{cutoff}
+    </update>
+
+    <!-- AI작성: 삭제 예정 시각에 도달한 계정을 잠금 조회한다. -->
+    <select id="findExpiredWithdrawalsForUpdate" resultType="com.siha.cutsai.member.mapper.MemberMapper$WithdrawalState">
+        SELECT member_id, email, withdrawn_at FROM member
+        WHERE withdrawn_at IS NOT NULL AND withdrawn_at &lt;= #{cutoff}
+        ORDER BY withdrawn_at, member_id LIMIT #{limit} FOR UPDATE
+    </select>
+
+    <!-- AI작성: 탈퇴하지 않은 회원만 활성 상태로 판단한다. -->
+    <select id="isActive" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM member WHERE member_id = #{memberId} AND withdrawn_at IS NULL)
+    </select>
+
     <!-- AI작성: 탈퇴 회원의 회차 일정을 삭제한다. -->
     <delete id="deleteEpisodeSchedules">
         DELETE FROM episode_schedule

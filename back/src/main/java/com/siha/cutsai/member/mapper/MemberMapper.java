@@ -1,6 +1,7 @@
 package com.siha.cutsai.member.mapper;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -41,6 +42,22 @@ public interface MemberMapper {
     /** AI작성: 계정 변경 중 회원 정보가 동시에 변경되지 않도록 해당 행을 잠근다. */
     Optional<AccountCredentials> findAccountForUpdate(@Param("memberId") long memberId);
 
+    /** AI작성: 회원의 탈퇴 요청 상태를 잠금 조회한다. */
+    Optional<WithdrawalState> findWithdrawalForUpdate(@Param("memberId") long memberId);
+
+    /** AI작성: 활성 회원에게 탈퇴 요청 시각을 기록한다. */
+    int markWithdrawn(@Param("memberId") long memberId, @Param("withdrawnAt") LocalDateTime withdrawnAt);
+
+    /** AI작성: 유예기간이 남은 탈퇴 계정을 활성 상태로 되돌린다. */
+    int restoreWithinGrace(@Param("memberId") long memberId, @Param("cutoff") LocalDateTime cutoff);
+
+    /** AI작성: 삭제 시점에 도달한 탈퇴 계정을 제한된 수만큼 잠금 조회한다. */
+    List<WithdrawalState> findExpiredWithdrawalsForUpdate(@Param("cutoff") LocalDateTime cutoff,
+                                                           @Param("limit") int limit);
+
+    /** AI작성: 탈퇴하지 않은 회원인지 확인한다. */
+    boolean isActive(@Param("memberId") long memberId);
+
     /** AI작성: 탈퇴하는 회원이 소유한 회차 일정을 삭제한다. */
     int deleteEpisodeSchedules(@Param("memberId") long memberId);
 
@@ -52,6 +69,9 @@ public interface MemberMapper {
 
     /** AI작성: 계정 변경 시 필요한 회원 정보와 비밀번호 해시다. */
     record AccountCredentials(String email, String nickname, String passwordHash) {}
+
+    /** AI작성: 탈퇴 유예와 정리에 필요한 회원 상태다. */
+    record WithdrawalState(long memberId, String email, LocalDateTime withdrawnAt) {}
 
     /** AI작성: 내 정보 응답 생성에 사용하는 회원 행이다. */
     record MemberRow(long memberId, String email, String nickname, LocalDateTime createdAt) {}
