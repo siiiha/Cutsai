@@ -3,13 +3,14 @@
 <mapper namespace="com.siha.cutsai.auth.mapper.EmailVerificationMapper">
     <!-- AI작성: 탈퇴한 이메일의 모든 인증 기록을 삭제한다. -->
     <delete id="deleteByEmail">
-        DELETE FROM email_verification WHERE email = #{email}
+        DELETE FROM email_verification
+        WHERE email = #{email}
     </delete>
 
     <!-- AI작성: 최초 인증 행을 생성하고 기존 행은 유지한다. -->
     <insert id="insertIfAbsent">
         INSERT INTO email_verification
-            (email, purpose, code_hash, expires_at, resend_window_started_at, resend_count)
+        (email, purpose, code_hash, expires_at, resend_window_started_at, resend_count)
         VALUES (#{email}, #{purpose}, #{codeHash}, #{expiresAt}, #{windowStartedAt}, 0)
         ON DUPLICATE KEY UPDATE email = email
     </insert>
@@ -17,32 +18,41 @@
     <!-- AI작성: 인증 상태를 잠금 조회한다. -->
     <select id="findForUpdate" resultType="com.siha.cutsai.auth.mapper.EmailVerificationMapper$Verification">
         SELECT code_hash, expires_at, verified_at, failed_attempts, resend_window_started_at, resend_count
-        FROM email_verification WHERE email = #{email} AND purpose = #{purpose} FOR UPDATE
+        FROM email_verification WHERE email = #{email}
+        AND purpose = #{purpose}
+        FOR UPDATE
     </select>
 
     <!-- AI작성: 새 인증 코드와 발송 제한을 저장한다. -->
     <update id="updateCode">
         UPDATE email_verification
         SET code_hash = #{codeHash}, expires_at = #{expiresAt}, verified_at = NULL,
-            failed_attempts = 0, resend_window_started_at = #{windowStartedAt}, resend_count = #{resendCount}
+        failed_attempts = 0, resend_window_started_at = #{windowStartedAt}, resend_count = #{resendCount}
         WHERE email = #{email} AND purpose = #{purpose}
     </update>
 
     <!-- AI작성: 인증 코드의 오입력 횟수를 기록한다. -->
     <update id="updateFailedAttempts">
-        UPDATE email_verification SET failed_attempts = #{failedAttempts}
-        WHERE email = #{email} AND purpose = #{purpose}
+        UPDATE email_verification
+        SET failed_attempts = #{failedAttempts}
+        WHERE email = #{email}
+        AND purpose = #{purpose}
     </update>
 
     <!-- AI작성: 인증 성공 시각을 기록한다. -->
     <update id="markVerified">
-        UPDATE email_verification SET verified_at = #{verifiedAt}
-        WHERE email = #{email} AND purpose = #{purpose}
+        UPDATE email_verification
+        SET verified_at = #{verifiedAt}
+        WHERE email = #{email}
+        AND purpose = #{purpose}
     </update>
 
     <!-- AI작성: 발송 제한을 유지하면서 인증 사용을 완료한다. -->
     <update id="consume">
-        UPDATE email_verification SET verified_at = NULL, expires_at = #{usedAt}
-        WHERE email = #{email} AND purpose = #{purpose} AND verified_at IS NOT NULL
+        UPDATE email_verification
+        SET verified_at = NULL, expires_at = #{usedAt}
+        WHERE email = #{email}
+        AND purpose = #{purpose}
+        AND verified_at IS NOT NULL
     </update>
 </mapper>

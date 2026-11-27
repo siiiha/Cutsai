@@ -9,18 +9,25 @@
 
     <!-- AI작성: 제한 상태를 잠금 조회한다. -->
     <select id="findForUpdate" resultType="com.siha.cutsai.auth.mapper.LoginRateLimitMapper$Limit">
-        SELECT failure_count, locked_until FROM login_rate_limit
-        WHERE limit_scope = #{scope} AND subject_hash = #{hash} FOR UPDATE
+        SELECT failure_count, locked_until
+        FROM login_rate_limit
+        WHERE limit_scope = #{scope}
+        AND subject_hash = #{hash}
+        FOR UPDATE
     </select>
 
     <!-- AI작성: 실패 횟수와 잠금 시각을 저장한다. -->
     <update id="update">
-        UPDATE login_rate_limit SET failure_count = #{failures}, locked_until = #{lockedUntil}, updated_at = #{updatedAt}
-        WHERE limit_scope = #{scope} AND subject_hash = #{hash}
+        UPDATE login_rate_limit
+        SET failure_count = #{failures}, locked_until = #{lockedUntil}, updated_at = #{updatedAt}
+        WHERE limit_scope = #{scope}
+        AND subject_hash = #{hash}
     </update>
 
     <!-- AI작성: 로그인 성공 시 제한 행을 삭제한다. -->
     <delete id="delete">
-        DELETE FROM login_rate_limit WHERE limit_scope = #{scope} AND subject_hash = #{hash}
+        DELETE FROM login_rate_limit
+        WHERE limit_scope = #{scope}
+        AND subject_hash = #{hash}
     </delete>
 </mapper>
