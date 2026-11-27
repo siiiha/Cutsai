@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS member (
     password_hash VARCHAR(255) NOT NULL,
     -- AI작성: 탈퇴 요청 시각을 UTC로 보관하며 NULL은 활성 계정이다.
     withdrawn_at DATETIME NULL,
+    -- AI작성: 탈퇴 전 발급된 액세스 토큰을 복구 후에도 구분하기 위한 버전이다.
+    token_version BIGINT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     ON UPDATE CURRENT_TIMESTAMP,
