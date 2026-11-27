@@ -2,6 +2,7 @@ package com.siha.cutsai.auth.mapper;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -11,6 +12,10 @@ import org.apache.ibatis.annotations.Update;
 /** AI작성: refresh_token 운영 데이터를 조회·폐기·저장한다. */
 @Mapper
 public interface RefreshTokenMapper {
+    /** AI작성: 회원 탈퇴 시 해당 회원의 모든 리프레시 토큰 기록을 삭제한다. */
+    @Delete("DELETE FROM refresh_token WHERE member_id = #{memberId}")
+    int deleteByMemberId(@Param("memberId") long memberId);
+
     /** AI작성: 재발급 대상 토큰을 행 잠금으로 조회한다. */
     @Select("""
             SELECT expires_at, revoked_at FROM refresh_token
