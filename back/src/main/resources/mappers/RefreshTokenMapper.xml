@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.siha.cutsai.auth.mapper.RefreshTokenMapper">
+    <!-- AI작성: 탈퇴 회원의 토큰을 삭제한다. -->
+    <delete id="deleteByMemberId">
+        DELETE FROM refresh_token WHERE member_id = #{memberId}
+    </delete>
+
+    <!-- AI작성: 재발급할 토큰을 잠금 조회한다. -->
+    <select id="findForUpdate" resultType="com.siha.cutsai.auth.mapper.RefreshTokenMapper$RefreshTokenSession">
+        SELECT expires_at, revoked_at FROM refresh_token
+        WHERE token_hash = #{tokenHash} AND member_id = #{memberId} FOR UPDATE
+    </select>
+
+    <!-- AI작성: 지정한 토큰을 폐기한다. -->
+    <update id="revoke">
+        UPDATE refresh_token SET revoked_at = #{revokedAt}
+        WHERE token_hash = #{tokenHash} AND member_id = #{memberId} AND revoked_at IS NULL
+    </update>
+
+    <!-- AI작성: 해당 회원의 토큰을 모두 폐기한다. -->
+    <update id="revokeAllForMember">
+        UPDATE refresh_token SET revoked_at = #{revokedAt}
+        WHERE member_id = #{memberId} AND revoked_at IS NULL
+    </update>
+
+    <!-- AI작성: 새 토큰의 해시와 만료 시각을 저장한다. -->
+    <insert id="insert">
+        INSERT INTO refresh_token (member_id, token_hash, expires_at, created_at)
+        VALUES (#{memberId}, #{tokenHash}, #{expiresAt}, #{createdAt})
+    </insert>
+</mapper>
