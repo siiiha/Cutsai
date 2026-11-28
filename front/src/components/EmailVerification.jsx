@@ -11,6 +11,8 @@ export default function EmailVerification({ purpose, onChange }) {
   const [remaining, setRemaining] = useState(0);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  // AI작성: 회원가입 안내 문구의 성공과 오류 상태를 구분한다.
+  const [messageKind, setMessageKind] = useState("");
   const requestVersion = useRef(0);
 
   // AI작성: 표시용 남은 시간을 실제 시각과 비교해 갱신한다.
@@ -21,6 +23,7 @@ export default function EmailVerification({ purpose, onChange }) {
       setRemaining(next);
       if (next === 0) {
         setVerified(false);
+        setMessageKind("error");
         setMessage("인증 시간이 만료되었습니다. 인증번호를 다시 발송해 주세요.");
         onChange?.({ email: email.trim(), verified: false, code: "" });
       }
@@ -42,18 +45,20 @@ export default function EmailVerification({ purpose, onChange }) {
     setRemaining(0);
     setBusy(false);
     setMessage("");
+    setMessageKind("");
     onChange?.({ email: next, verified: false, code: "" });
   }
 
   // AI작성: 발송 또는 재발송 결과에 따라 인증번호와 표시 시간을 초기화한다.
   async function send() {
     if (!email.trim()) {
+      setMessageKind("error");
       setMessage("이메일을 입력해 주세요.");
       return;
     }
     const version = ++requestVersion.current;
     setBusy(true);
-    setMessage("");
+    if (purpose !== "SIGNUP") setMessage("");
     try {
       await sendEmailVerification({ email: email.trim(), purpose }, sent);
       if (requestVersion.current !== version) return;
@@ -61,10 +66,12 @@ export default function EmailVerification({ purpose, onChange }) {
       setVerified(false);
       setCode("");
       setExpiresAt(Date.now() + 300000);
-      setMessage("인증번호를 발송했습니다. 이메일을 확인해 주세요.");
+      setMessageKind("success");
+      setMessage(purpose === "SIGNUP" ? "인증번호는 5분 동안 유효합니다." : "인증번호를 발송했습니다. 이메일을 확인해 주세요.");
       onChange?.({ email: email.trim(), verified: false, code: "" });
     } catch (error) {
       if (requestVersion.current !== version) return;
+      setMessageKind("error");
       setMessage(error.response?.data?.error?.message || "인증번호를 발송하지 못했습니다. 다시 시도해 주세요.");
     } finally {
       if (requestVersion.current === version) setBusy(false);
@@ -74,6 +81,7 @@ export default function EmailVerification({ purpose, onChange }) {
   // AI작성: 현재 이메일과 인증 목적에 맞는 6자리 코드를 서버에서 확인한다.
   async function verifyCode() {
     if (!/^[0-9]{6}$/.test(code)) {
+      setMessageKind("error");
       setMessage("6자리 숫자를 입력해 주세요.");
       return;
     }
@@ -84,11 +92,13 @@ export default function EmailVerification({ purpose, onChange }) {
       await verifyEmail({ email: email.trim(), purpose, code });
       if (requestVersion.current !== version) return;
       setVerified(true);
+      setMessageKind("success");
       setMessage("이메일 인증이 완료되었습니다.");
       onChange?.({ email: email.trim(), verified: true, code });
     } catch (error) {
       if (requestVersion.current !== version) return;
       setVerified(false);
+      setMessageKind("error");
       onChange?.({ email: email.trim(), verified: false, code: "" });
       setMessage(error.response?.data?.error?.message || "인증번호를 확인하지 못했습니다. 다시 시도해 주세요.");
     } finally {
@@ -116,8 +126,17 @@ export default function EmailVerification({ purpose, onChange }) {
           인증 확인
         </button>
       </div>
-      <small>{sent ? verified ? "인증이 완료되었습니다." : `남은 시간 ${minutes}:${seconds}` : "인증번호는 5분 동안 유효합니다."}</small>
-      {message && <small role="status">{message}</small>}
+      {/* AI작성: 회원가입에서는 안내와 오류를 같은 위치에 표시하고 발송 중에도 유지한다. */}
+      {purpose === "SIGNUP" ? (
+        <small role="status" style={{ color: messageKind === "error" ? "#a53437" : "#215840" }}>
+          {message}{sent && !verified && remaining > 0 ? ` (남은 시간 ${minutes}:${seconds})` : ""}
+        </small>
+      ) : (
+        <>
+          <small>{sent ? verified ? "인증이 완료되었습니다." : `남은 시간 ${minutes}:${seconds}` : "인증번호는 5분 동안 유효합니다."}</small>
+          {message && <small role="status">{message}</small>}
+        </>
+      )}
     </>
   );
 }

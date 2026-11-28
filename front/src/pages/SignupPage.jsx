@@ -3,6 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import EmailVerification from "../components/EmailVerification.jsx";
 import { register } from "../api/authApi.js";
 
+// AI작성: 비밀번호의 길이와 필수 문자 포함 여부를 확인한다.
+function validatePassword(value) {
+  if (value.length < 8 || value.length > 16) return "비밀번호는 8~16자로 입력해 주세요.";
+  if (!/[A-Za-z]/.test(value) || !/[0-9]/.test(value) || !/[\p{P}\p{S}]/u.test(value)) {
+    return "비밀번호에 영문, 숫자, 특수문자를 각각 하나 이상 포함해 주세요.";
+  }
+  return "";
+}
+
 // AI작성: 인증된 이메일과 계정 정보를 입력받아 회원가입을 요청한다.
 export default function Signup() {
   const navigate = useNavigate();
@@ -12,6 +21,13 @@ export default function Signup() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // AI작성: 입력란을 벗어난 뒤에는 비밀번호 수정 결과를 바로 반영한다.
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const passwordError = passwordTouched ? validatePassword(password) : "";
+  // AI작성: 비밀번호 확인란을 벗어난 뒤 일치 여부를 표시한다.
+  const [passwordConfirmTouched, setPasswordConfirmTouched] = useState(false);
+  const passwordConfirmError = passwordConfirmTouched && password !== passwordConfirm
+    ? "비밀번호 확인이 일치하지 않습니다." : "";
 
   // AI작성: 입력값을 확인하고 서버가 가입을 승인한 경우에만 완료 화면으로 이동한다.
   async function submit(event) {
@@ -26,17 +42,15 @@ export default function Signup() {
       setError("닉네임은 2~12자로 입력해 주세요.");
       return;
     }
-    if (password.length < 8 || password.length > 16) {
-      setError("비밀번호는 8~16자로 입력해 주세요.");
-      return;
-    }
-    // AI작성: 서버와 동일하게 영문·숫자·특수문자를 각각 포함하는지 확인한다.
-    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password) || !/[\p{P}\p{S}]/u.test(password)) {
-      setError("비밀번호에 영문, 숫자, 특수문자를 각각 하나 이상 포함해 주세요.");
+    const validationError = validatePassword(password);
+    if (validationError) {
+      setPasswordTouched(true);
+      setError("");
       return;
     }
     if (password !== passwordConfirm) {
-      setError("비밀번호 확인이 일치하지 않습니다.");
+      setPasswordConfirmTouched(true);
+      setError("");
       return;
     }
 
@@ -78,14 +92,20 @@ export default function Signup() {
           <label className="field">
             비밀번호
             <input type="password" placeholder="8~16자 · 영문, 숫자, 특수문자 각각 포함"
-              value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required />
+              value={password} onChange={(event) => setPassword(event.target.value)} onBlur={() => setPasswordTouched(true)}
+              aria-invalid={Boolean(passwordError)} autoComplete="new-password" required />
           </label>
+          {/* AI작성: 비밀번호 검증과 가입 오류를 주의 색상으로 표시한다. */}
+          {passwordError && <p role="alert" style={{ color: "#a53437" }}>{passwordError}</p>}
           <label className="field">
             비밀번호 확인
             <input type="password" placeholder="비밀번호 다시 입력" value={passwordConfirm}
-              onChange={(event) => setPasswordConfirm(event.target.value)} autoComplete="new-password" required />
+              onChange={(event) => setPasswordConfirm(event.target.value)} onBlur={() => setPasswordConfirmTouched(true)}
+              aria-invalid={Boolean(passwordConfirmError)} autoComplete="new-password" required />
           </label>
-          {error && <p role="alert">{error}</p>}
+          {/* AI작성: 확인 비밀번호가 다르면 입력란 아래에 오류를 표시한다. */}
+          {passwordConfirmError && <p role="alert" style={{ color: "#a53437" }}>{passwordConfirmError}</p>}
+          {error && <p role="alert" style={{ color: "#a53437" }}>{error}</p>}
           {/* AI작성: 시안의 공통 클릭 전환을 막아 요청 성공 전에는 완료 화면으로 이동하지 않는다. */}
           <button className="primary" type="submit" disabled={!verification.verified || submitting}
             onClick={(event) => event.stopPropagation()}>

@@ -1,9 +1,9 @@
 package com.siha.cutsai.auth.service;
 
 import com.siha.cutsai.auth.AuthHash;
-import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
 import com.siha.cutsai.auth.dto.RegisterRequest;
 import com.siha.cutsai.auth.dto.RegisterResponse;
+import com.siha.cutsai.auth.mapper.RefreshTokenMapper;
 import com.siha.cutsai.common.exception.ApiException;
 import com.siha.cutsai.common.jwt.JwtProvider;
 import com.siha.cutsai.member.mapper.MemberMapper;
@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
-/** AI작성: 로그인·회원가입·refresh 토큰 회전을 처리한다. */
+/**
+ * AI작성: 로그인·회원가입·refresh 토큰 회전을 처리한다.
+ */
 @Service
 public class AuthServiceImpl implements AuthService {
     private final LoginService loginService;
@@ -32,8 +34,8 @@ public class AuthServiceImpl implements AuthService {
     private final EmailVerificationService emailVerificationService;
 
     public AuthServiceImpl(LoginService loginService, JwtProvider jwtProvider, RefreshTokenMapper refreshTokenMapper,
-                       MemberMapper memberMapper, PasswordEncoder passwordEncoder,
-                       EmailVerificationService emailVerificationService) {
+                           MemberMapper memberMapper, PasswordEncoder passwordEncoder,
+                           EmailVerificationService emailVerificationService) {
         this.loginService = loginService;
         this.jwtProvider = jwtProvider;
         this.refreshTokenMapper = refreshTokenMapper;
@@ -42,7 +44,9 @@ public class AuthServiceImpl implements AuthService {
         this.emailVerificationService = emailVerificationService;
     }
 
-    /** AI작성: 로그인 성공 후 최초 refresh 만료 시각을 7일 뒤로 고정해 토큰을 발급한다. */
+    /**
+     * AI작성: 로그인 성공 후 최초 refresh 만료 시각을 7일 뒤로 고정해 토큰을 발급한다.
+     */
     @Override
     @Transactional(noRollbackFor = ApiException.class)
     public Tokens login(String email, String password, String remoteAddress) {
@@ -61,7 +65,9 @@ public class AuthServiceImpl implements AuthService {
         return issueTokens(memberId, now, now.plus(JwtProvider.REFRESH_VALIDITY));
     }
 
-    /** AI작성: 비밀번호를 다시 확인하고 30일 유예가 남은 계정을 복구한 뒤 새 토큰을 발급한다. */
+    /**
+     * AI작성: 비밀번호를 다시 확인하고 30일 유예가 남은 계정을 복구한 뒤 새 토큰을 발급한다.
+     */
     @Override
     @Transactional(noRollbackFor = ApiException.class)
     public Tokens recoverAccount(String email, String password, String remoteAddress) {
@@ -83,7 +89,9 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    /** AI작성: 이메일·닉네임 중복을 검사하고 BCrypt 비밀번호 해시로 회원을 가입시킨다. */
+    /**
+     * AI작성: 이메일·닉네임 중복을 검사하고 BCrypt 비밀번호 해시로 회원을 가입시킨다.
+     */
     @Override
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -116,7 +124,8 @@ public class AuthServiceImpl implements AuthService {
             throw e;
         }
         try {
-            memberMapper.insert(email, passwordEncoder.encode(request.password()), nickname, LocalDateTime.now(ZoneOffset.UTC));
+            memberMapper.insert(email, passwordEncoder.encode(request.password()), nickname,
+                    LocalDateTime.now(ZoneOffset.UTC));
         } catch (DuplicateKeyException e) {
             // AI작성: 동시 가입으로 사전 검사를 통과해도 DB 중복 제약을 공통 오류로 안내한다.
             throw new ApiException(HttpStatus.CONFLICT, "AUTH-003", "이미 사용 중인 이메일 또는 닉네임입니다.");
@@ -126,10 +135,13 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new IllegalStateException("가입한 회원을 조회할 수 없습니다.")).memberId();
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         Tokens tokens = issueTokens(memberId, now, now.plus(JwtProvider.REFRESH_VALIDITY));
-        return new RegisterResponse(tokens.accessToken(), tokens.refreshToken(), new RegisterResponse.Member(email, nickname));
+        return new RegisterResponse(tokens.accessToken(), tokens.refreshToken(),
+                new RegisterResponse.Member(email, nickname));
     }
 
-    /** AI작성: 사용 전 refresh 토큰을 폐기하고 최초 만료 시각을 유지한 새 토큰 쌍을 발급한다. */
+    /**
+     * AI작성: 사용 전 refresh 토큰을 폐기하고 최초 만료 시각을 유지한 새 토큰 쌍을 발급한다.
+     */
     @Override
     @Transactional
     public Tokens refresh(String refreshToken) {
@@ -148,7 +160,9 @@ public class AuthServiceImpl implements AuthService {
         return issueTokens(memberId, now.truncatedTo(ChronoUnit.SECONDS), expiresAt);
     }
 
-    /** AI작성: 전달된 refresh 토큰을 폐기해 이후 재발급을 막는다. */
+    /**
+     * AI작성: 전달된 refresh 토큰을 폐기해 이후 재발급을 막는다.
+     */
     @Override
     @Transactional
     public void logout(long memberId, String refreshToken) {
@@ -157,23 +171,28 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    /** AI작성: refresh 토큰 해시의 미폐기 행을 폐기한다. */
+    /**
+     * AI작성: refresh 토큰 해시의 미폐기 행을 폐기한다.
+     */
     private void revoke(long memberId, String hash, Instant now) {
         refreshTokenMapper.revoke(memberId, hash, LocalDateTime.ofInstant(now, ZoneOffset.UTC));
     }
 
-    /** AI작성: 액세스 JWT와 DB에는 해시만 남기는 refresh 토큰을 함께 발급한다. */
+    /**
+     * AI작성: 액세스 JWT와 DB에는 해시만 남기는 refresh 토큰을 함께 발급한다.
+     */
     private Tokens issueTokens(long memberId, Instant now, Instant refreshExpiresAt) {
         // AI작성: 비활성 계정에는 토큰을 발급하지 않고 현재 회원 버전을 액세스 토큰에 담는다.
         MemberMapper.TokenState state = memberMapper.findTokenState(memberId).orElseThrow(JwtProvider::invalidRefresh);
-        if (!state.active()) throw JwtProvider.invalidRefresh();
+        if (!state.active()) {
+            throw JwtProvider.invalidRefresh();
+        }
         String accessToken = jwtProvider.createAccessToken(memberId, now, state.tokenVersion());
         String refreshToken = jwtProvider.createRefreshToken(memberId, now, refreshExpiresAt);
         refreshTokenMapper.insert(memberId, AuthHash.sha256(refreshToken),
-                LocalDateTime.ofInstant(refreshExpiresAt, ZoneOffset.UTC), LocalDateTime.ofInstant(now, ZoneOffset.UTC));
+                LocalDateTime.ofInstant(refreshExpiresAt, ZoneOffset.UTC),
+                LocalDateTime.ofInstant(now, ZoneOffset.UTC));
         return new Tokens(accessToken, refreshToken, refreshExpiresAt);
     }
 
-    /** AI작성: Controller가 쿠키와 응답 본문을 만들 때 쓰는 발급 결과다. */
-    public record Tokens(String accessToken, String refreshToken, Instant refreshExpiresAt) {}
 }

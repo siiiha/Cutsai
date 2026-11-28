@@ -1,5 +1,12 @@
+@import url("https://jsdelivr.net");
+
 *{box-sizing:border-box}
-body{margin:0;background:#f5f6f2;color:#182e27;font:14px "Malgun Gothic",sans-serif}
+body {
+  margin: 0;
+  background: #f5f6f2;
+  color: #182e27;
+  font: 14px "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+}
 h1,h2,h3,p{margin:0}
 h1{font-size:25px;letter-spacing:-1px}
 h2{font-size:17px;margin-bottom:14px}
