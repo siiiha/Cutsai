@@ -3,6 +3,29 @@ import { Link, useNavigate } from "react-router-dom";
 import EmailVerification from "../components/EmailVerification.jsx";
 import { register } from "../api/authApi.js";
 
+// AI작성: 비밀번호를 각 입력란에서 개별적으로 보이거나 숨긴다.
+function PasswordInput(props) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "block" }}>
+      <input {...props} type={visible ? "text" : "password"} style={{ paddingRight: 44 }} />
+      <button type="button" aria-label={visible ? "비밀번호 숨기기" : "비밀번호 보기"}
+        aria-pressed={visible} onClick={() => setVisible((value) => !value)}
+        style={{ position: "absolute", right: 0, top: 0, width: 40, height: "100%", padding: 0, border: 0, background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }}>
+        {/* AI작성: 표시 상태에 따라 열린 눈과 감긴 눈을 구분한다. */}
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          {visible ? (
+            <><path d="M3 10c2.4 3 5.4 4.5 9 4.5s6.6-1.5 9-4.5" /><path d="m5 14-1.5 2M9 15.5l-.5 2M15 15.5l.5 2M19 14l1.5 2" /></>
+          ) : (
+            <><path d="M2.5 12s3.5-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.5 5.5-9.5 5.5S2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.5" /></>
+          )}
+        </svg>
+      </button>
+    </span>
+  );
+}
+
 // AI작성: 닉네임의 길이와 허용된 문자 사용 여부를 확인한다.
 function validateNickname(value) {
   return /^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9_]{2,12}$/.test(value.trim())
@@ -103,7 +126,7 @@ export default function Signup() {
           {nicknameError && <small role="alert" style={{ color: "#a53437" }}>{nicknameError}</small>}
           <label className="field">
             비밀번호
-            <input type="password" placeholder="영문, 숫자, 특수문자 각각 포함하여 8~16자로 입력"
+            <PasswordInput placeholder="영문, 숫자, 특수문자 각각 포함하여 8~16자로 입력"
               value={password} onChange={(event) => setPassword(event.target.value)} onBlur={() => setPasswordTouched(true)}
               aria-invalid={Boolean(passwordError)} autoComplete="new-password" required />
           </label>
@@ -111,7 +134,7 @@ export default function Signup() {
           {passwordError && <small role="alert" style={{ color: "#a53437" }}>{passwordError}</small>}
           <label className="field">
             비밀번호 확인
-            <input type="password" placeholder="비밀번호 다시 입력" value={passwordConfirm}
+            <PasswordInput placeholder="비밀번호 다시 입력" value={passwordConfirm}
               onChange={(event) => setPasswordConfirm(event.target.value)} onBlur={() => setPasswordConfirmTouched(true)}
               aria-invalid={Boolean(passwordConfirmError)} autoComplete="new-password" required />
           </label>
@@ -121,7 +144,7 @@ export default function Signup() {
           {/* AI작성: 시안의 공통 클릭 전환을 막아 요청 성공 전에는 완료 화면으로 이동하지 않는다. */}
           <button className="primary" type="submit" disabled={!verification.verified || submitting}
             onClick={(event) => event.stopPropagation()}>
-            {submitting ? "가입 중..." : "가입하기"}
+            {submitting ? "가입 중" : "가입하기"}
           </button>
         </form>
         <div className="foot">이미 계정이 있나요?　<Link to="/login">로그인</Link></div>
