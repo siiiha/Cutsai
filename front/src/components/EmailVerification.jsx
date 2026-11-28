@@ -14,6 +14,8 @@ export default function EmailVerification({ purpose, onChange }) {
   // AI작성: 회원가입 안내 문구의 성공과 오류 상태를 구분한다.
   const [messageKind, setMessageKind] = useState("");
   const requestVersion = useRef(0);
+  // AI작성: 이메일 형식을 브라우저의 이메일 입력 규칙으로 확인한다.
+  const emailInput = useRef(null);
 
   // AI작성: 표시용 남은 시간을 실제 시각과 비교해 갱신한다.
   useEffect(() => {
@@ -56,6 +58,11 @@ export default function EmailVerification({ purpose, onChange }) {
       setMessage("이메일을 입력해 주세요.");
       return;
     }
+    if (emailInput.current?.validity.typeMismatch) {
+      setMessageKind("error");
+      setMessage("이메일 주소를 올바른 형식으로 입력해 주세요. 예: name@example.com");
+      return;
+    }
     const version = ++requestVersion.current;
     setBusy(true);
     if (purpose !== "SIGNUP") setMessage("");
@@ -72,7 +79,11 @@ export default function EmailVerification({ purpose, onChange }) {
     } catch (error) {
       if (requestVersion.current !== version) return;
       setMessageKind("error");
-      setMessage(error.response?.data?.error?.message || "인증번호를 발송하지 못했습니다. 다시 시도해 주세요.");
+      // AI작성: 서버의 일반적인 검증 오류는 사용자가 이해하기 쉬운 안내로 바꾼다.
+      const serverMessage = error.response?.data?.error?.message;
+      setMessage(serverMessage === "요청 필수값과 형식을 확인해 주세요."
+        ? "입력한 이메일 주소를 확인해 주세요. 예: name@example.com"
+        : serverMessage || "인증번호를 발송하지 못했습니다. 다시 시도해 주세요.");
     } finally {
       if (requestVersion.current === version) setBusy(false);
     }
@@ -113,7 +124,7 @@ export default function EmailVerification({ purpose, onChange }) {
     <>
       <label className="field">
         이메일 아이디
-        <input type="email" placeholder="writer@example.com" value={email} onChange={changeEmail} autoComplete="email" />
+        <input ref={emailInput} type="email" placeholder="writer@example.com" value={email} onChange={changeEmail} autoComplete="email" />
       </label>
       <div className="row">
         <input aria-label="인증번호" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
