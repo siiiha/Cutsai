@@ -3,6 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import EmailVerification from "../components/EmailVerification.jsx";
 import { register } from "../api/authApi.js";
 
+// AI작성: 닉네임의 길이와 허용된 문자 사용 여부를 확인한다.
+function validateNickname(value) {
+  return /^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9_]{2,12}$/.test(value.trim())
+    ? "" : "닉네임은 한글, 영문, 숫자, 밑줄만 사용하여 2~12자로 입력해 주세요.";
+}
+
 // AI작성: 비밀번호의 길이와 필수 문자 포함 여부를 확인한다.
 function validatePassword(value) {
   if (value.length < 8 || value.length > 16) return "비밀번호는 8~16자로 입력해 주세요.";
@@ -21,6 +27,9 @@ export default function Signup() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // AI작성: 닉네임 입력란을 벗어난 뒤에는 수정 결과를 바로 반영한다.
+  const [nicknameTouched, setNicknameTouched] = useState(false);
+  const nicknameError = nicknameTouched ? validateNickname(nickname) : "";
   // AI작성: 입력란을 벗어난 뒤에는 비밀번호 수정 결과를 바로 반영한다.
   const [passwordTouched, setPasswordTouched] = useState(false);
   const passwordError = passwordTouched ? validatePassword(password) : "";
@@ -38,8 +47,9 @@ export default function Signup() {
       setError("이메일 인증을 완료해 주세요.");
       return;
     }
-    if (trimmedNickname.length < 2 || trimmedNickname.length > 12) {
-      setError("닉네임은 2~12자로 입력해 주세요.");
+    if (validateNickname(nickname)) {
+      setNicknameTouched(true);
+      setError("");
       return;
     }
     const validationError = validatePassword(password);
@@ -87,8 +97,11 @@ export default function Signup() {
           <EmailVerification purpose="SIGNUP" onChange={setVerification} />
           <label className="field">
             닉네임
-            <input placeholder="사용할 닉네임 입력" value={nickname} onChange={(event) => setNickname(event.target.value)} required />
+            <input placeholder="사용할 닉네임 입력" value={nickname} onChange={(event) => setNickname(event.target.value)}
+              onBlur={() => setNicknameTouched(true)} aria-invalid={Boolean(nicknameError)} required />
           </label>
+          {/* AI작성: 닉네임 형식 오류를 입력란 아래에 표시한다. */}
+          {nicknameError && <p role="alert" style={{ color: "#a53437" }}>{nicknameError}</p>}
           <label className="field">
             비밀번호
             <input type="password" placeholder="8~16자 · 영문, 숫자, 특수문자 각각 포함"
