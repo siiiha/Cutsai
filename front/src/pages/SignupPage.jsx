@@ -29,13 +29,13 @@ export default function Signup() {
   const [error, setError] = useState("");
   // AI작성: 닉네임 입력란을 벗어난 뒤에는 수정 결과를 바로 반영한다.
   const [nicknameTouched, setNicknameTouched] = useState(false);
-  const nicknameError = nicknameTouched ? validateNickname(nickname) : "";
+  const nicknameError = nicknameTouched && nickname ? validateNickname(nickname) : "";
   // AI작성: 입력란을 벗어난 뒤에는 비밀번호 수정 결과를 바로 반영한다.
   const [passwordTouched, setPasswordTouched] = useState(false);
-  const passwordError = passwordTouched ? validatePassword(password) : "";
+  const passwordError = passwordTouched && password ? validatePassword(password) : "";
   // AI작성: 비밀번호 확인란을 벗어난 뒤 일치 여부를 표시한다.
   const [passwordConfirmTouched, setPasswordConfirmTouched] = useState(false);
-  const passwordConfirmError = passwordConfirmTouched && password !== passwordConfirm
+  const passwordConfirmError = passwordConfirmTouched && passwordConfirm && password !== passwordConfirm
     ? "비밀번호 확인이 일치하지 않습니다." : "";
 
   // AI작성: 입력값을 확인하고 서버가 가입을 승인한 경우에만 완료 화면으로 이동한다.
@@ -90,26 +90,25 @@ export default function Signup() {
   return (
     <div className="auth">
       <div className="card">
-        <div className="brand"><span className="mark">✎</span>Cutsai</div>
-        <h1>회원가입</h1>
+        <div className="brand"><span className="mark">✎</span>Cutsai 회원가입</div>
         <form className="form" onSubmit={submit}>
           {/* AI작성: 회원가입 목적의 인증 상태와 인증번호를 가입 요청에 전달한다. */}
           <EmailVerification purpose="SIGNUP" onChange={setVerification} />
           <label className="field">
             닉네임
-            <input placeholder="사용할 닉네임 입력" value={nickname} onChange={(event) => setNickname(event.target.value)}
+            <input placeholder="한글, 영문, 숫자, 밑줄만 사용하여 2~12자로 입력" value={nickname} onChange={(event) => setNickname(event.target.value)}
               onBlur={() => setNicknameTouched(true)} aria-invalid={Boolean(nicknameError)} required />
           </label>
-          {/* AI작성: 닉네임 형식 오류를 입력란 아래에 표시한다. */}
-          {nicknameError && <p role="alert" style={{ color: "#a53437" }}>{nicknameError}</p>}
+          {/* AI작성: 안내문은 이메일 안내와 같은 작은 글자 크기로 표시한다. */}
+          {nicknameError && <small role="alert" style={{ color: "#a53437" }}>{nicknameError}</small>}
           <label className="field">
             비밀번호
-            <input type="password" placeholder="8~16자 · 영문, 숫자, 특수문자 각각 포함"
+            <input type="password" placeholder="영문, 숫자, 특수문자 각각 포함하여 8~16자로 입력"
               value={password} onChange={(event) => setPassword(event.target.value)} onBlur={() => setPasswordTouched(true)}
               aria-invalid={Boolean(passwordError)} autoComplete="new-password" required />
           </label>
           {/* AI작성: 비밀번호 검증과 가입 오류를 주의 색상으로 표시한다. */}
-          {passwordError && <p role="alert" style={{ color: "#a53437" }}>{passwordError}</p>}
+          {passwordError && <small role="alert" style={{ color: "#a53437" }}>{passwordError}</small>}
           <label className="field">
             비밀번호 확인
             <input type="password" placeholder="비밀번호 다시 입력" value={passwordConfirm}
@@ -117,8 +116,8 @@ export default function Signup() {
               aria-invalid={Boolean(passwordConfirmError)} autoComplete="new-password" required />
           </label>
           {/* AI작성: 확인 비밀번호가 다르면 입력란 아래에 오류를 표시한다. */}
-          {passwordConfirmError && <p role="alert" style={{ color: "#a53437" }}>{passwordConfirmError}</p>}
-          {error && <p role="alert" style={{ color: "#a53437" }}>{error}</p>}
+          {passwordConfirmError && <small role="alert" style={{ color: "#a53437" }}>{passwordConfirmError}</small>}
+          {error && <small role="alert" style={{ color: "#a53437" }}>{error}</small>}
           {/* AI작성: 시안의 공통 클릭 전환을 막아 요청 성공 전에는 완료 화면으로 이동하지 않는다. */}
           <button className="primary" type="submit" disabled={!verification.verified || submitting}
             onClick={(event) => event.stopPropagation()}>

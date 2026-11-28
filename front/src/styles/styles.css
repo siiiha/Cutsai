@@ -13,6 +13,9 @@ h2{font-size:17px;margin-bottom:14px}
 p,small{color:#53675d;line-height:1.65}
 p{margin-top:8px}
 button,input{font:inherit;border:1px solid #d6e0d8;border-radius:8px;height:38px;padding:0 13px;background:white;color:#193b2e}
+input {
+  font-weight: normal;
+}
 button{font-weight:bold;white-space:nowrap}
 .primary{background:#215840;color:white;border-color:#215840}
 .danger{background:#a53437;color:white;border-color:#a53437}
