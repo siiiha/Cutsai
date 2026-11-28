@@ -1,6 +1,9 @@
-import { Link } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
-export default function Signup() {
+export default function SignupComplete() {
+  // AI작성: 가입 성공을 거치지 않은 완료 화면 접근은 가입 화면으로 돌려보낸다.
+  const location = useLocation();
+  if (!location.state?.signupCompleted) return <Navigate to="/signup" replace />;
   return (
     <>
       <div className={"auth"}>
@@ -36,7 +39,16 @@ export default function Signup() {
             </label>
             <button className={"primary"}>{"가입하기"}</button>
           </div>
-          <div className={"foot"}>{"이미 계정이 있나요?　"}<Link to="/login">로그인</Link></div>
+          <div className={"foot"}>{"이미 계정이 있나요?　로그인"}</div>
+        </div>
+      </div>
+      <div className={"modalshade"}>
+        <div className={"card modal success"}>
+          <div className={"check"}>{"✓"}</div>
+          <h2>{"가입이 완료됐어요"}</h2>
+          <p>{"이제 Cutsai에 로그인할 수 있어요."}</p>
+          <br />
+          <button className={"primary"}>{"로그인으로 이동"}</button>
         </div>
       </div>
     </>

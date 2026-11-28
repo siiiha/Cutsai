@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.siha.cutsai.auth.mapper.LoginRateLimitMapper">
+    <!-- AI작성: 로그인 제한 행을 처음 생성한다. -->
+    <insert id="insertIfAbsent">
+        INSERT INTO login_rate_limit (limit_scope, subject_hash, updated_at)
+        VALUES (#{scope}, #{hash}, UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE failure_count = failure_count
+    </insert>
+
+    <!-- AI작성: 제한 상태를 잠금 조회한다. -->
+    <select id="findForUpdate" resultType="com.siha.cutsai.auth.mapper.LoginRateLimitMapper$Limit">
+        SELECT failure_count, locked_until
+        FROM login_rate_limit
+        WHERE limit_scope = #{scope}
+        AND subject_hash = #{hash}
+        FOR UPDATE
+    </select>
+
+    <!-- AI작성: 실패 횟수와 잠금 시각을 저장한다. -->
+    <update id="update">
+        UPDATE login_rate_limit
+        SET failure_count = #{failures}, locked_until = #{lockedUntil}, updated_at = #{updatedAt}
+        WHERE limit_scope = #{scope}
+        AND subject_hash = #{hash}
+    </update>
+
+    <!-- AI작성: 로그인 성공 시 제한 행을 삭제한다. -->
+    <delete id="delete">
+        DELETE FROM login_rate_limit
+        WHERE limit_scope = #{scope}
+        AND subject_hash = #{hash}
+    </delete>
+</mapper>

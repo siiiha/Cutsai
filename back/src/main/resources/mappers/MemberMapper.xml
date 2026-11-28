@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.siha.cutsai.member.mapper.MemberMapper">
+    <!-- AI작성: 이메일에 해당하는 로그인 정보를 조회한다. -->
+    <select id="findCredentialsByEmail" resultType="com.siha.cutsai.member.mapper.MemberMapper$MemberCredentials">
+        SELECT member_id, password_hash FROM member
+        WHERE BINARY LOWER(email) = #{email}
+    </select>
+
+    <!-- AI작성: 로그인 검증 대상 회원을 잠금 조회한다. -->
+    <select id="findCredentialsByEmailForUpdate"
+            resultType="com.siha.cutsai.member.mapper.MemberMapper$MemberCredentials">
+        SELECT member_id, password_hash FROM
+        member WHERE BINARY LOWER(email) = #{email} FOR UPDATE
+    </select>
+
+    <!-- AI작성: 토큰 재발급 대상 회원을 잠근다. -->
+    <select id="lockById" resultType="java.lang.Long">
+        SELECT member_id FROM member
+        WHERE member_id = #{memberId} FOR UPDATE
+    </select>
+
+    <!-- AI작성: 이메일 중복 여부를 확인한다. -->
+    <select id="existsByEmail" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM member
+        WHERE BINARY LOWER(email) = #{email})
+    </select>
+
+    <!-- AI작성: 닉네임 중복 여부를 확인한다. -->
+    <select id="existsByNickname" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM member
+        WHERE nickname = #{nickname})
+    </select>
+
+    <!-- AI작성: 회원의 닉네임을 변경한다. -->
+    <update id="updateNickname">
+        UPDATE member SET nickname = #{nickname}, updated_at = #{updatedAt}
+        WHERE member_id = #{memberId}
+    </update>
+
+    <!-- AI작성: 새 회원을 저장한다. -->
+    <insert id="insert">
+        INSERT INTO member (email, password_hash, nickname, created_at)
+        VALUES (#{email}, #{passwordHash}, #{nickname}, #{createdAt})
+    </insert>
+
+    <!-- AI작성: 회원의 비밀번호 해시를 변경한다. -->
+    <update id="updatePassword">
+        UPDATE member
+        SET password_hash = #{passwordHash}, updated_at = #{updatedAt}
+        WHERE member_id = #{memberId}
+    </update>
+
+    <!-- AI작성: 현재 회원 정보를 조회한다. -->
+    <select id="findById" resultType="com.siha.cutsai.member.mapper.MemberMapper$MemberRow">
+        SELECT member_id, email, nickname, created_at
+        FROM member
+        WHERE member_id = #{memberId}
+    </select>
+
+    <!-- AI작성: 계정 변경 대상 회원을 잠금 조회한다. -->
+    <select id="findAccountForUpdate" resultType="com.siha.cutsai.member.mapper.MemberMapper$AccountCredentials">
+        SELECT email, nickname, password_hash
+        FROM member
+        WHERE member_id = #{memberId}
+        FOR UPDATE
+    </select>
+
+    <!-- AI작성: 탈퇴 또는 복구할 회원의 현재 상태를 잠금 조회한다. -->
+    <select id="findWithdrawalForUpdate" resultType="com.siha.cutsai.member.mapper.MemberMapper$WithdrawalState">
+        SELECT member_id, email, withdrawn_at FROM member WHERE member_id = #{memberId} FOR UPDATE
+    </select>
+
+    <!-- AI작성: 탈퇴 요청 시 기존 액세스 토큰을 복구 후에도 거부하도록 버전을 올린다. -->
+    <update id="markWithdrawn">
+        UPDATE member SET withdrawn_at = #{withdrawnAt}, token_version = token_version + 1, updated_at = #{withdrawnAt}
+        WHERE member_id = #{memberId} AND withdrawn_at IS NULL
+    </update>
+
+    <!-- AI작성: 탈퇴 후 30일 기준 시각이 지나지 않은 계정만 복구한다. -->
+    <update id="restoreWithinGrace">
+        UPDATE member SET withdrawn_at = NULL, updated_at = UTC_TIMESTAMP()
+        WHERE member_id = #{memberId} AND withdrawn_at IS NOT NULL AND withdrawn_at &gt; #{cutoff}
+    </update>
+
+    <!-- AI작성: 삭제 예정 시각에 도달한 계정을 잠금 조회한다. -->
+    <select id="findExpiredWithdrawalsForUpdate" resultType="com.siha.cutsai.member.mapper.MemberMapper$WithdrawalState">
+        SELECT member_id, email, withdrawn_at FROM member
+        WHERE withdrawn_at IS NOT NULL AND withdrawn_at &lt;= #{cutoff}
+        ORDER BY withdrawn_at, member_id LIMIT #{limit} FOR UPDATE
+    </select>
+
+    <!-- AI작성: 탈퇴하지 않은 회원만 활성 상태로 판단한다. -->
+    <select id="isActive" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM member WHERE member_id = #{memberId} AND withdrawn_at IS NULL)
+    </select>
+
+    <!-- AI작성: 회원의 활성 상태와 토큰 버전을 함께 조회한다. -->
+    <select id="findTokenState" resultType="com.siha.cutsai.member.mapper.MemberMapper$TokenState">
+        SELECT (withdrawn_at IS NULL) AS active, token_version FROM member WHERE member_id = #{memberId}
+    </select>
+
+    <!-- AI작성: 탈퇴 회원의 회차 일정을 삭제한다. -->
+    <delete id="deleteEpisodeSchedules">
+        DELETE FROM episode_schedule
+        WHERE member_id = #{memberId}
+    </delete>
+
+    <!-- AI작성: 회원을 삭제한다. -->
+    <delete id="deleteMember">
+        DELETE FROM member
+        WHERE member_id = #{memberId}
+    </delete>
+</mapper>

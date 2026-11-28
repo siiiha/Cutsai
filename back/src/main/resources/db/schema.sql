@@ -5,6 +5,10 @@ CREATE TABLE IF NOT EXISTS member (
                                       email VARCHAR(254) NOT NULL,
     nickname VARCHAR(50) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    -- AI작성: 탈퇴 요청 시각을 UTC로 보관하며 NULL은 활성 계정이다.
+    withdrawn_at DATETIME NULL,
+    -- AI작성: 탈퇴 전 발급된 액세스 토큰을 복구 후에도 구분하기 위한 버전이다.
+    token_version BIGINT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     ON UPDATE CURRENT_TIMESTAMP,
@@ -25,8 +29,9 @@ CREATE TABLE IF NOT EXISTS episode_schedule (
     ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (episode_id),
     KEY idx_episode_schedule_member_id (member_id),
-    CONSTRAINT fk_episode_schedule_member
-    FOREIGN KEY (member_id) REFERENCES member (member_id)
+    CONSTRAINT fk_episode_schedule_member_cascade
+    /* AI작성: 회원 탈퇴 시 소유한 회차 일정도 함께 삭제한다. */
+    FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS email_verification (
@@ -61,6 +66,7 @@ CREATE TABLE IF NOT EXISTS refresh_token (
     PRIMARY KEY (refresh_token_id),
     UNIQUE KEY uk_refresh_token_hash (token_hash),
     KEY idx_refresh_token_member_id (member_id),
-    CONSTRAINT fk_refresh_token_member
-    FOREIGN KEY (member_id) REFERENCES member (member_id)
+    CONSTRAINT fk_refresh_token_member_cascade
+    /* AI작성: 회원 탈퇴 시 해당 회원의 리프레시 토큰도 함께 삭제한다. */
+    FOREIGN KEY (member_id) REFERENCES member (member_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

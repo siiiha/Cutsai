@@ -1,4 +1,4 @@
-import Dashboard from "./05-Dashboard.jsx";
+import Dashboard from "./DashboardPage.jsx";
 
 export default function DashboardAgain() {
   return <Dashboard />;

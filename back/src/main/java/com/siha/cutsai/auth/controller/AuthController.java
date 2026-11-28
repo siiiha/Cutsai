@@ -4,6 +4,7 @@ import com.siha.cutsai.auth.service.AuthService;
 import com.siha.cutsai.auth.dto.LoginRequest;
 import com.siha.cutsai.auth.dto.RefreshRequest;
 import com.siha.cutsai.auth.dto.RegisterRequest;
+import com.siha.cutsai.auth.dto.RegisterResponse;
 import com.siha.cutsai.auth.dto.TokenResponse;
 import com.siha.cutsai.common.dto.ApiResponse;
 import com.siha.cutsai.common.exception.ApiException;
@@ -53,11 +54,21 @@ public class AuthController {
                 usesCookie(refreshTransport));
     }
 
+    /** AI작성: 비밀번호를 다시 확인한 탈퇴 유예 계정을 복구하고 로그인과 같은 토큰 응답을 반환한다. */
+    @PostMapping(path = "/account-recoveries", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<TokenResponse>> recoverAccount(@Valid @RequestBody LoginRequest request,
+            @RequestHeader(name = REFRESH_MODE_HEADER, required = false) String refreshTransport,
+            HttpServletRequest servletRequest) {
+        return tokenResponse(authService.recoverAccount(request.email(), request.password(), servletRequest.getRemoteAddr()),
+                usesCookie(refreshTransport));
+    }
+
     /** AI작성: 이메일·비밀번호·닉네임으로 새 회원을 생성한다. */
     @PostMapping(path = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(null));
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        // AI작성: 가입 응답의 토큰과 회원 정보를 명세의 성공 응답에 담는다.
+        RegisterResponse response = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore()).body(ApiResponse.ok(response));
     }
 
     /** AI작성: 쿠키 또는 본문의 refresh 토큰을 한 번만 사용해 새 토큰 쌍을 발급한다. */

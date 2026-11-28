@@ -1,6 +1,7 @@
 package com.siha.cutsai.common.security;
 
 import com.siha.cutsai.common.jwt.JwtProvider;
+import com.siha.cutsai.member.mapper.MemberMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,7 +23,7 @@ public class SecurityConfig {
 
     /** AI작성: 세션을 사용하지 않는 JWT 보안 규칙과 공개 API를 등록한다. */
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtProvider jwtProvider) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtProvider jwtProvider, MemberMapper memberMapper) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -31,13 +32,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh",
-                                "/api/auth/register", "/api/auth/email-verifications",
+                                "/api/auth/register", "/api/auth/account-recoveries", "/api/auth/email-verifications",
                                 "/api/auth/email-verifications/verify", "/api/auth/email-verifications/resend",
                                 "/api/auth/password-resets", "/api/dialogues/check", "/api/dialogues/split").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/onomatopoeias", "/api/sound-effects").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
-                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, memberMapper), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

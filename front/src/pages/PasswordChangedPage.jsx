@@ -1,6 +1,9 @@
-import { Link } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
-export default function PasswordReset() {
+export default function PasswordChanged() {
+  // AI작성: 변경 성공을 거치지 않은 완료 화면 접근은 재설정 화면으로 돌려보낸다.
+  const location = useLocation();
+  if (!location.state?.passwordResetCompleted) return <Navigate to="/password/reset" replace />;
   return (
     <>
       <div className={"auth"}>
@@ -32,7 +35,16 @@ export default function PasswordReset() {
             </label>
             <button className={"primary"}>{"비밀번호 변경"}</button>
           </div>
-          <div className={"foot"}><Link to="/login">로그인으로 돌아가기</Link></div>
+          <div className={"foot"}>{"로그인으로 돌아가기"}</div>
+        </div>
+      </div>
+      <div className={"modalshade"}>
+        <div className={"card modal success"}>
+          <div className={"check"}>{"✓"}</div>
+          <h2>{"비밀번호 변경 완료"}</h2>
+          <p>{"새 비밀번호로 로그인해 주세요."}</p>
+          <br />
+          <button className={"primary"}>{"로그인으로 이동"}</button>
         </div>
       </div>
     </>

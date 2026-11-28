@@ -1,0 +1,96 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { deleteAccount } from "../api/accountApi.js";
+import { useAuthStore } from "../stores/useAuthStore.js";
+import Settings from "./SettingsPage.jsx";
+
+// AI작성: 비밀번호를 각 입력란에서 개별적으로 보이거나 숨긴다.
+function PasswordInput(props) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "block" }}>
+      <input {...props} type={visible ? "text" : "password"} style={{ paddingRight: 44 }} />
+      <button type="button" aria-label={visible ? "비밀번호 숨기기" : "비밀번호 보기"}
+        aria-pressed={visible} onClick={() => setVisible((value) => !value)}
+        style={{ position: "absolute", right: 0, top: 0, width: 40, height: "100%", padding: 0, border: 0, background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }}>
+        {/* AI작성: 표시 상태에 따라 열린 눈과 감긴 눈을 구분한다. */}
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          {visible ? (
+            <><path d="M3 10c2.4 3 5.4 4.5 9 4.5s6.6-1.5 9-4.5" /><path d="m5 14-1.5 2M9 15.5l-.5 2M15 15.5l.5 2M19 14l1.5 2" /></>
+          ) : (
+            <><path d="M2.5 12s3.5-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.5 5.5-9.5 5.5S2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.5" /></>
+          )}
+        </svg>
+      </button>
+    </span>
+  );
+}
+
+// AI작성: 회원 탈퇴 안내 확인과 현재 비밀번호 입력을 처리한다.
+export default function Withdrawal() {
+  const navigate = useNavigate();
+  const [confirmed, setConfirmed] = useState(false);
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // AI작성: 안내 확인과 비밀번호를 검증하고 탈퇴 성공 시 인증 상태를 정리한다.
+  async function submit(event) {
+    event.preventDefault();
+    if (submitting) return;
+    if (!confirmed || !password) {
+      setError("탈퇴 안내를 확인하고 현재 비밀번호를 입력해 주세요.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await deleteAccount(password);
+      if (response.status !== 204) throw new Error("탈퇴 결과를 확인하지 못했습니다.");
+      useAuthStore.getState().clearAuth();
+      navigate("/", { replace: true });
+    } catch (requestError) {
+      setError(requestError.response?.data?.error?.message || "회원 탈퇴를 처리하지 못했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <Settings />
+      <div className="modalshade">
+        <div className="card modal" role="dialog" aria-modal="true" aria-labelledby="withdrawal-title">
+          <h2 id="withdrawal-title">회원 탈퇴</h2>
+          <div className="notice">
+            <b>탈퇴 전 확인해 주세요</b>
+            <ul>
+              <li>탈퇴하면 계정이 비활성화되고 30일 동안 복구할 수 있습니다.</li>
+              <li>30일이 지나면 계정과 회차 일정이 영구 삭제되어 복구할 수 없습니다.</li>
+              <li>개인정보 처리 기준은 개인정보 처리방침에서 확인할 수 있습니다.</li>
+            </ul>
+          </div>
+          <form className="form" onSubmit={submit}>
+            <label>
+              <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
+              탈퇴 안내를 확인했습니다.
+            </label>
+            <label className="field">
+              현재 비밀번호
+              <PasswordInput autoComplete="current-password" value={password}
+                onChange={(event) => setPassword(event.target.value)} required />
+            </label>
+            {error && <p role="alert">{error}</p>}
+            <div className="actions">
+              <Link to="/settings">취소</Link>
+              <button className="danger" type="submit" disabled={!confirmed || !password || submitting}>
+                {submitting ? "처리 중..." : "탈퇴하기"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+}
